@@ -1,3 +1,5 @@
+// backend/src/routes/userRoutes.js
+
 import express from 'express';
 import {
   getUsers,
@@ -7,22 +9,27 @@ import {
   toggleUserStatus,
 } from '../controllers/userController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { admin } from '../middlewares/roleMiddleware.js'; // Usamos el middleware de rol
+import { admin } from '../middlewares/roleMiddleware.js';
+import {
+  validateUserCreate,
+  validateUserUpdate,
+  validateId,
+} from '../middlewares/validationMiddleware.js';
 
 const router = express.Router();
 
-// Rutas de administración (requieren ser Administrador)
+// Todas las rutas requieren autenticación y rol de Administrador
+
 router
   .route('/')
-  .get(protect, admin, getUsers) // GET /api/v1/users
-  .post(protect, admin, createUser); // POST /api/v1/users
+  .get(protect, admin, getUsers)
+  .post(protect, admin, validateUserCreate, createUser);
 
 router
   .route('/:id')
-  .get(protect, admin, getUserById) // GET /api/v1/users/:id
-  .put(protect, admin, updateUser); // PUT /api/v1/users/:id
+  .get(protect, admin, validateId, getUserById)
+  .put(protect, admin, validateId, validateUserUpdate, updateUser);
 
-// Ruta específica para activar/desactivar (mejor que un DELETE)
-router.patch('/toggle-status/:id', protect, admin, toggleUserStatus); // PATCH /api/v1/users/toggle-status/:id
+router.patch('/toggle-status/:id', protect, admin, validateId, toggleUserStatus);
 
 export default router;

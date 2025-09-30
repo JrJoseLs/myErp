@@ -1,37 +1,71 @@
 // frontend/src/services/authService.js
 
-import api from './api'; 
+import api from './api';
 
 /**
- * Función que maneja la lógica de inicio de sesión.
- * Llama a la API y guarda el token y los datos del usuario en localStorage.
+ * Función de inicio de sesión
  * @param {string} email 
  * @param {string} password 
- * @returns {Promise<Object>} Datos de respuesta del usuario y token.
+ * @returns {Promise<Object>} Datos del usuario y token
  */
 export const loginUser = async (email, password) => {
-  try {
-    // La llamada se hace a http://localhost:5000/api/v1/auth/login
-    const { data } = await api.post('/auth/login', { email, password });
-    
-    // Guardar el token y datos en el almacenamiento local
-    localStorage.setItem('userToken', data.token);
-    localStorage.setItem('userData', JSON.stringify(data.user)); 
-    
-    return data;
-  } catch (error) {
-    // Lanzar el mensaje de error del backend
-    throw error.response?.data || { message: 'Error de conexión o credenciales inválidas.' };
-  }
+  try {
+    const { data } = await api.post('/auth/login', { email, password });
+    
+    // CORRECCIÓN: El backend devuelve la estructura correcta
+    // data = { id, nombre_completo, email, rol, permisos, token }
+    
+    // Guardar token
+    localStorage.setItem('userToken', data.token);
+    
+    // Guardar datos del usuario (sin el token)
+    const userData = {
+      id: data.id,
+      nombre_completo: data.nombre_completo,
+      email: data.email,
+      rol: data.rol,
+      permisos: data.permisos,
+    };
+    
+    localStorage.setItem('userData', JSON.stringify(userData));
+    
+    return {
+      token: data.token,
+      user: userData,
+    };
+  } catch (error) {
+    console.error('Error en loginUser:', error);
+    const errorMessage = error.response?.data?.message || 'Error de conexión o credenciales inválidas.';
+    throw new Error(errorMessage);
+  }
 };
 
-
 /**
- * Función que limpia los datos de sesión de localStorage.
+ * Función de cierre de sesión
  */
 export const logoutUser = () => {
-  // Limpiar el almacenamiento local
-  localStorage.removeItem('userToken');
-  localStorage.removeItem('userData');
-  // La limpieza del encabezado de Axios se maneja en useAuth.jsx
+  localStorage.removeItem('userToken');
+  localStorage.removeItem('userData');
+};
+
+/**
+ * Obtener usuario desde localStorage
+ * @returns {Object|null} Datos del usuario o null
+ */
+export const getCurrentUser = () => {
+  try {
+    const userData = localStorage.getItem('userData');
+    return userData ? JSON.parse(userData) : null;
+  } catch (error) {
+    console.error('Error al obtener usuario:', error);
+    return null;
+  }
+};
+
+/**
+ * Obtener token desde localStorage
+ * @returns {string|null} Token o null
+ */
+export const getToken = () => {
+  return localStorage.getItem('userToken');
 };

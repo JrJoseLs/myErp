@@ -1,3 +1,5 @@
+// backend/src/routes/productRoutes.js
+
 import express from 'express';
 import {
   getCategories,
@@ -7,30 +9,36 @@ import {
   getProductById,
   createProduct,
   updateProduct,
-  toggleProductStatus, // Asumiendo que has copiado esta función también
+  toggleProductStatus,
 } from '../controllers/productController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { restrictTo } from '../middlewares/roleMiddleware.js'; 
+import { restrictTo } from '../middlewares/roleMiddleware.js';
+import {
+  validateCategory,
+  validateProductCreate,
+  validateProductUpdate,
+  validateId,
+} from '../middlewares/validationMiddleware.js';
 
 const router = express.Router();
 
-// Roles permitidos para la gestión de Inventario/Productos (Escribir/Crear/Actualizar)
-const inventoryOrAdmin = restrictTo('Administrador', 'Inventario'); 
-// Roles permitidos para ver el catálogo (Leer)
+// Roles permitidos para la gestión de Inventario/Productos
+const inventoryOrAdmin = restrictTo('Administrador', 'Inventario');
+// Roles permitidos para ver el catálogo
 const viewProductsRoles = restrictTo('Administrador', 'Inventario', 'Vendedor');
-
 
 // ============================================
 // RUTAS DE CATEGORIAS
 // ============================================
+
 router
   .route('/categories')
-  .get(protect, viewProductsRoles, getCategories) 
-  .post(protect, inventoryOrAdmin, createCategory); // Solo Inventario/Admin
+  .get(protect, viewProductsRoles, getCategories)
+  .post(protect, inventoryOrAdmin, validateCategory, createCategory);
 
-router.route('/categories/:id')
-    .put(protect, inventoryOrAdmin, updateCategory);
-
+router
+  .route('/categories/:id')
+  .put(protect, inventoryOrAdmin, validateId, validateCategory, updateCategory);
 
 // ============================================
 // RUTAS DE PRODUCTOS
@@ -38,14 +46,20 @@ router.route('/categories/:id')
 
 router
   .route('/')
-  .get(protect, viewProductsRoles, getProducts) 
-  .post(protect, inventoryOrAdmin, createProduct); 
+  .get(protect, viewProductsRoles, getProducts)
+  .post(protect, inventoryOrAdmin, validateProductCreate, createProduct);
 
 router
   .route('/:id')
-  .get(protect, viewProductsRoles, getProductById) 
-  .put(protect, inventoryOrAdmin, updateProduct); 
+  .get(protect, viewProductsRoles, validateId, getProductById)
+  .put(protect, inventoryOrAdmin, validateId, validateProductUpdate, updateProduct);
 
-router.patch('/toggle-status/:id', protect, inventoryOrAdmin, toggleProductStatus); 
+router.patch(
+  '/toggle-status/:id',
+  protect,
+  inventoryOrAdmin,
+  validateId,
+  toggleProductStatus
+);
 
 export default router;
