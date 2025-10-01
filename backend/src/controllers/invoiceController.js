@@ -14,9 +14,9 @@ import {
 import { Op } from 'sequelize';
 
 /**
- * @desc    Obtener todas las facturas con filtros
- * @route   GET /api/v1/invoices
- * @access  Private
+ * @desc     Obtener todas las facturas con filtros
+ * @route    GET /api/v1/invoices
+ * @access   Private
  */
 export const getInvoices = async (req, res) => {
   try {
@@ -91,9 +91,9 @@ export const getInvoices = async (req, res) => {
 };
 
 /**
- * @desc    Obtener factura por ID con detalles
- * @route   GET /api/v1/invoices/:id
- * @access  Private
+ * @desc     Obtener factura por ID con detalles
+ * @route    GET /api/v1/invoices/:id
+ * @access   Private
  */
 export const getInvoiceById = async (req, res) => {
   try {
@@ -144,9 +144,9 @@ export const getInvoiceById = async (req, res) => {
 };
 
 /**
- * @desc    Crear nueva factura
- * @route   POST /api/v1/invoices
- * @access  Private
+ * @desc     Crear nueva factura
+ * @route    POST /api/v1/invoices
+ * @access   Private
  */
 export const createInvoice = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -290,6 +290,25 @@ export const createInvoice = async (req, res) => {
     const total = subtotal + itbis - descuento_global;
     const balance_pendiente = tipo_venta === 'credito' ? total : 0;
 
+    // 🌟🌟🌟 INICIO DE CORRECCIÓN PARA 'fecha_vencimiento' 🌟🌟🌟
+    let final_fecha_vencimiento = null;
+
+    if (tipo_venta === 'credito' && fecha_vencimiento) {
+        const dateObj = new Date(fecha_vencimiento);
+        
+        // Comprobar si la fecha es válida
+        if (isNaN(dateObj.getTime())) { 
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'La fecha de vencimiento proporcionada no es válida.',
+            });
+        }
+        final_fecha_vencimiento = fecha_vencimiento;
+    }
+    // Si tipo_venta es 'contado' o fecha_vencimiento es falsy, final_fecha_vencimiento será null.
+    // 🌟🌟🌟 FIN DE CORRECCIÓN 🌟🌟🌟
+
     // Crear factura
     const invoice = await Invoice.create(
       {
@@ -298,7 +317,7 @@ export const createInvoice = async (req, res) => {
         tipo_ncf,
         cliente_id,
         fecha_emision: fecha_emision || new Date(),
-        fecha_vencimiento,
+        fecha_vencimiento: final_fecha_vencimiento, // Uso del valor corregido
         tipo_venta: tipo_venta || 'contado',
         moneda: moneda || 'DOP',
         subtotal,
@@ -354,7 +373,8 @@ export const createInvoice = async (req, res) => {
           monto_original: total,
           monto_pagado: 0,
           balance_pendiente: total,
-          fecha_vencimiento: fecha_vencimiento || new Date(),
+          // Uso del valor corregido. Si es null, Sequelize usará NULL o el valor por defecto del modelo.
+          fecha_vencimiento: final_fecha_vencimiento || new Date(), 
           estado: 'vigente',
         },
         { transaction }
@@ -405,9 +425,9 @@ export const createInvoice = async (req, res) => {
 };
 
 /**
- * @desc    Anular factura
- * @route   PATCH /api/v1/invoices/:id/anular
- * @access  Private
+ * @desc     Anular factura
+ * @route    PATCH /api/v1/invoices/:id/anular
+ * @access   Private
  */
 export const anularInvoice = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -515,9 +535,9 @@ export const anularInvoice = async (req, res) => {
 };
 
 /**
- * @desc    Registrar pago de factura
- * @route   POST /api/v1/invoices/:id/payments
- * @access  Private
+ * @desc     Registrar pago de factura
+ * @route    POST /api/v1/invoices/:id/payments
+ * @access   Private
  */
 export const registerPayment = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -641,9 +661,9 @@ export const registerPayment = async (req, res) => {
 };
 
 /**
- * @desc    Obtener estadísticas de facturación
- * @route   GET /api/v1/invoices/stats
- * @access  Private
+ * @desc     Obtener estadísticas de facturación
+ * @route    GET /api/v1/invoices/stats
+ * @access   Private
  */
 export const getInvoiceStats = async (req, res) => {
   try {
