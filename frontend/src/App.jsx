@@ -7,6 +7,10 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 import LoginPage from './pages/Login';
 import DashboardPage from './pages/Dashboard';
 import InventoryPage from './pages/Inventory';
+import CustomersPage from './pages/Customers';
+import InvoicesPage from './pages/Invoices';
+import CreateInvoicePage from './pages/CreateInvoice';
+import InvoiceDetailPage from './pages/InvoiceDetail';
 import SalesPage from './pages/Sales';
 import ProvidersPage from './pages/Providers';
 import ReportsPage from './pages/Reports';
@@ -48,6 +52,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* Inventario */}
           <Route
             path="/inventory"
             element={
@@ -56,6 +62,44 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Clientes */}
+          <Route
+            path="/customers"
+            element={
+              <ProtectedRoute>
+                <CustomersPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Facturas */}
+          <Route
+            path="/invoices"
+            element={
+              <ProtectedRoute>
+                <InvoicesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices/create"
+            element={
+              <ProtectedRoute>
+                <CreateInvoicePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices/:id"
+            element={
+              <ProtectedRoute>
+                <InvoiceDetailPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Otras rutas */}
           <Route
             path="/sales"
             element={
