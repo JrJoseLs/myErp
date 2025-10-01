@@ -9,6 +9,9 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
+import ncfRoutes from './routes/ncfRoutes.js';
+import invoiceRoutes from './routes/invoiceRoutes.js';
 
 // Importar middlewares
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
@@ -19,19 +22,17 @@ const app = express();
 // MIDDLEWARES GLOBALES
 // ============================================
 
-// Habilitar CORS para peticiones desde el frontend (React/Vite)
 app.use(
   cors({
     origin:
       appConfig.nodeEnv === 'development'
-        ? '*' // Permitir todos en desarrollo
-        : appConfig.apiUrl, // Usar la URL definida en producción
+        ? '*'
+        : appConfig.apiUrl,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
-// Body parser para peticiones JSON y x-www-form-urlencoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -39,12 +40,12 @@ app.use(express.urlencoded({ extended: true }));
 // RUTAS
 // ============================================
 
-// Ruta de prueba
 app.get('/', (req, res) => {
   res.json({
     message: `API ERP/CRM en modo ${appConfig.nodeEnv}`,
     version: '1.0.0',
     status: 'online',
+    etapa: 'Etapa 5 - Facturación con NCF',
   });
 });
 
@@ -53,15 +54,15 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/inventory', inventoryRoutes);
+app.use('/api/v1/customers', customerRoutes);
+app.use('/api/v1/ncf', ncfRoutes);
+app.use('/api/v1/invoices', invoiceRoutes);
 
 // ============================================
-// MANEJO DE ERRORES (Debe ir al final)
+// MANEJO DE ERRORES
 // ============================================
 
-// Middleware para manejar rutas no encontradas (404)
 app.use(notFound);
-
-// Middleware de manejo de errores general
 app.use(errorHandler);
 
 export default app;
