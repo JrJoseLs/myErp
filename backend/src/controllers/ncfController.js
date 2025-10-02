@@ -264,3 +264,62 @@ export const deactivateNCFRange = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc    Verificar alertas de NCF próximos a agotarse
+ * @route   GET /api/v1/ncf/alerts
+ * @access  Private
+ */
+export const checkNCFAlerts = async (req, res) => {
+  try {
+    const ranges = await NCF.findAll({
+      where: {
+        activo: true,
+        agotado: false,
+      },
+      order: [['tipo_ncf', 'ASC']],
+    });
+
+    const alerts = ranges
+      .map(range => {
+        const desde = parseInt(range.secuencia_desde.substring(3));
+        const hasta = parseInt(range.secuencia_hasta.substring(3));
+        const actual = parseInt(range.secuencia_actual.substring(3));
+        
+        const total = hasta - desde + 1;
+        const usados = actual - desde;
+        const disponibles = hasta - actual + 1;
+        const porcentaje = (disponibles / total) * 100;
+
+        // Solo alertar si quedan menos del 20%
+        if (porcentaje < 20) {
+          return {
+            tipo_ncf: range.tipo_ncf,
+            descripcion: range.descripcion_tipo,
+            disponibles,
+            total,
+            porcentaje: parseFloat(porcentaje.toFixed(2)),
+            urgente: porcentaje < 10,
+            critico: porcentaje < 5,
+            fecha_vencimiento: range.fecha_vencimiento,
+          };
+        }
+        return null;
+      })
+      .filter(alert => alert !== null);
+
+    res.json({
+      success: true,
+      requiere_accion: alerts.length > 0,
+      total_alertas: alerts.length,
+      alerts,
+    });
+  } catch (error) {
+    console.error('Error al verificar alertas de NCF:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al verificar alertas de NCF',
+      error: error.message,
+    });
+  }
+};

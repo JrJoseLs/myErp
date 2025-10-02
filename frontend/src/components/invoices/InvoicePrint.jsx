@@ -2,8 +2,9 @@
 
 import React, { useRef } from 'react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { Printer } from 'lucide-react';
+import { Printer, Download } from 'lucide-react';
 import Button from '../common/Button';
+import { exportInvoiceToPDF } from '../../utils/pdfExporter';
 
 const InvoicePrint = ({ invoice }) => {
   const printRef = useRef();
@@ -70,10 +71,18 @@ const InvoicePrint = ({ invoice }) => {
 
   return (
     <div>
-      <div className="mb-4 no-print">
+      <div className="mb-4 no-print flex space-x-3">
         <Button onClick={handlePrint} className="flex items-center space-x-2">
           <Printer className="w-5 h-5" />
           <span>Imprimir Factura</span>
+        </Button>
+        
+        <Button 
+          onClick={() => exportInvoiceToPDF(invoice)} 
+          className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+        >
+          <Download className="w-5 h-5" />
+          <span>Descargar PDF</span>
         </Button>
       </div>
 
@@ -81,11 +90,11 @@ const InvoicePrint = ({ invoice }) => {
         {/* Header - Información de la Empresa */}
         <div className="header">
           <div className="company-info">
-            <div className="company-name">TU EMPRESA S.R.L.</div>
+            <div className="company-name">TU FERRETERÍA S.R.L.</div>
             <div className="company-details">
-              RNC: 000-00000-0 | Teléfono: (809) 000-0000<br />
-              Dirección: Calle Principal #123, Santo Domingo, República Dominicana<br />
-              Email: contacto@tuempresa.com
+              RNC: 131-XXXXX-X | Teléfono: (809) 123-4567<br />
+              Dirección: Av. Principal #456, Santo Domingo, República Dominicana<br />
+              Email: ventas@tuferreteria.com
             </div>
           </div>
         </div>
@@ -119,11 +128,13 @@ const InvoicePrint = ({ invoice }) => {
           <div className="info-box">
             <div className="info-row">
               <span className="info-label">Factura No.:</span>
-              <span style="font-weight: bold;">{invoice.numero_factura}</span>
+              <span style={{fontWeight: 'bold'}}>{invoice.numero_factura}</span>
             </div>
             <div className="info-row">
               <span className="info-label">NCF:</span>
-              <span style="font-weight: bold; color: #0066cc;">{invoice.ncf || 'N/A'}</span>
+              <span style={{fontWeight: 'bold', color: '#0066cc', fontSize: '14px', letterSpacing: '1px'}}>
+                {invoice.ncf || 'N/A'}
+              </span>
             </div>
             <div className="info-row">
               <span className="info-label">Fecha:</span>
@@ -131,7 +142,7 @@ const InvoicePrint = ({ invoice }) => {
             </div>
             <div className="info-row">
               <span className="info-label">Tipo de Venta:</span>
-              <span style="text-transform: uppercase;">{invoice.tipo_venta}</span>
+              <span style={{textTransform: 'uppercase'}}>{invoice.tipo_venta}</span>
             </div>
             {invoice.fecha_vencimiento && (
               <div className="info-row">
@@ -150,13 +161,13 @@ const InvoicePrint = ({ invoice }) => {
         <table>
           <thead>
             <tr>
-              <th style="width: 10%;">Código</th>
-              <th style="width: 35%;">Descripción</th>
-              <th className="text-center" style="width: 10%;">Cant.</th>
-              <th className="text-right" style="width: 12%;">Precio</th>
-              <th className="text-center" style="width: 10%;">ITBIS</th>
-              <th className="text-right" style="width: 12%;">Subtotal</th>
-              <th className="text-right" style="width: 11%;">Total</th>
+              <th style={{width: '10%'}}>Código</th>
+              <th style={{width: '35%'}}>Descripción</th>
+              <th className="text-center" style={{width: '10%'}}>Cant.</th>
+              <th className="text-right" style={{width: '12%'}}>Precio</th>
+              <th className="text-center" style={{width: '10%'}}>ITBIS</th>
+              <th className="text-right" style={{width: '12%'}}>Subtotal</th>
+              <th className="text-right" style={{width: '11%'}}>Total</th>
             </tr>
           </thead>
           <tbody>
@@ -170,7 +181,7 @@ const InvoicePrint = ({ invoice }) => {
                   <td>
                     {item.product?.nombre}
                     {item.descuento > 0 && (
-                      <div style="font-size: 10px; color: #666;">
+                      <div style={{fontSize: '10px', color: '#666'}}>
                         Desc: {formatCurrency(item.descuento)}
                       </div>
                     )}
@@ -190,7 +201,7 @@ const InvoicePrint = ({ invoice }) => {
 
         {/* Notas */}
         {invoice.notas && (
-          <div style="margin: 20px 0; padding: 10px; background-color: #f9f9f9; border-left: 3px solid #0066cc;">
+          <div style={{margin: '20px 0', padding: '10px', backgroundColor: '#f9f9f9', borderLeft: '3px solid #0066cc'}}>
             <strong>Notas:</strong> {invoice.notas}
           </div>
         )}
@@ -216,14 +227,14 @@ const InvoicePrint = ({ invoice }) => {
             <span>{formatCurrency(invoice.total)}</span>
           </div>
           {invoice.tipo_venta === 'credito' && invoice.balance_pendiente > 0 && (
-            <div className="total-row" style="color: #dc2626; margin-top: 5px;">
+            <div className="total-row" style={{color: '#dc2626', marginTop: '5px'}}>
               <span>Balance Pendiente:</span>
               <span>{formatCurrency(invoice.balance_pendiente)}</span>
             </div>
           )}
         </div>
 
-        <div style="clear: both;"></div>
+        <div style={{clear: 'both'}}></div>
 
         {/* Firmas */}
         <div className="signature-section">
@@ -238,8 +249,8 @@ const InvoicePrint = ({ invoice }) => {
         {/* Footer */}
         <div className="footer">
           <p>Esta factura es un comprobante fiscal válido para fines tributarios según la DGII.</p>
-          <p>Gracias por su preferencia. Para cualquier consulta comuníquese al (809) 000-0000</p>
-          <p style="margin-top: 10px;">
+          <p>Gracias por su preferencia. Para cualquier consulta comuníquese al (809) 123-4567</p>
+          <p style={{marginTop: '10px'}}>
             <strong>IMPORTANTE:</strong> Esta factura debe conservarse por 10 años según lo establece la ley tributaria.
           </p>
         </div>
