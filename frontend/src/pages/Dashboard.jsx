@@ -16,7 +16,9 @@ import {
   Edit,
   Trash2,
   XCircle,
-  LogIn
+  LogIn,
+  // 1. CORRECCIÓN: Se agrega la importación de ShoppingCart
+  ShoppingCart 
 } from 'lucide-react';
 import { getLowStockProducts, getInventoryValuation } from '../services/inventoryService';
 import { formatCurrency, formatNumber, formatDateTime, formatDate } from '../utils/formatters';
@@ -289,6 +291,14 @@ const DashboardPage = () => {
               <Users className="w-8 h-8 text-blue-600 mb-2" />
               <span className="text-sm font-medium text-gray-900">Clientes</span>
             </Link>
+            {/* 2. CORRECCIÓN: Se separan los enlaces y se corrige la estructura */}
+            <Link
+              to="/pos"
+              className="flex flex-col items-center justify-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition"
+            >
+              <ShoppingCart className="w-8 h-8 text-red-600 mb-2" />
+              <span className="text-sm font-medium text-gray-900">Punto de Venta</span>
+            </Link>
             <Link
               to="/reports"
               className="flex flex-col items-center justify-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition"
@@ -296,6 +306,7 @@ const DashboardPage = () => {
               <FileText className="w-8 h-8 text-purple-600 mb-2" />
               <span className="text-sm font-medium text-gray-900">Reportes</span>
             </Link>
+            
           </div>
         </div>
       </div>

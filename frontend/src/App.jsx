@@ -15,6 +15,7 @@ import SalesPage from './pages/Sales';
 import ProvidersPage from './pages/Providers';
 import ReportsPage from './pages/Reports';
 import SettingsPage from './pages/Settings';
+import POSPage from './pages/POS';
 
 // Componente de ruta protegida
 const ProtectedRoute = ({ children }) => {
@@ -132,7 +133,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-
+          <Route
+          path="/pos"
+          element={
+            <ProtectedRoute>
+              <POSPage />
+            </ProtectedRoute>
+          }
+        />
           {/* Ruta 404 */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
