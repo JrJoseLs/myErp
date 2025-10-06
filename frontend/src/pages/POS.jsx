@@ -404,12 +404,12 @@
 
 // export default POSPage;
 
-// frontend/src/pages/POS.jsx - Punto de Venta Rápido
+// frontend/src/pages/POS.jsx - Punto de Venta MEJORADO
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { getProducts } from '../services/productService';
-import { getConsumidorFinal } from '../services/customerService';
+import { getCustomers } from '../services/customerService';
 import { createInvoice } from '../services/invoiceService';
 import { formatCurrency } from '../utils/formatters';
 import { 
@@ -420,7 +420,8 @@ import {
   DollarSign, 
   Search,
   LogOut,
-  Printer
+  Printer,
+  User
 } from 'lucide-react';
 import Button from '../components/common/Button';
 import Notification from '../components/common/Notification';
@@ -428,43 +429,60 @@ import Notification from '../components/common/Notification';
 const POSPage = () => {
   const { user, logout } = useAuth();
   const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [cart, setCart] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [lastInvoice, setLastInvoice] = useState(null);
-  const searchInputRef = useRef(null);
   
-  const [consumidorFinalId, setConsumidorFinalId] = useState(null);
-  const [isInitializing, setIsInitializing] = useState(true);
+  // Cliente seleccionado (por defecto: ninguno, se muestra selector)
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
+  
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     initializePOS();
   }, []);
 
   const initializePOS = async () => {
-    setIsInitializing(true);
     try {
-      const [id, productsData] = await Promise.all([
-        getConsumidorFinal(),
-        getProducts({ activo: true, limit: 100 })
+      const [productsData, customersData] = await Promise.all([
+        getProducts({ activo: true, limit: 100 }),
+        getCustomers({ activo: true, limit: 50 })
       ]);
       
-      setConsumidorFinalId(id);
       setProducts(productsData.products || []);
+      setCustomers(customersData.customers || []);
+      
+      // Buscar "Consumidor Final" automáticamente
+      const consumidorFinal = customersData.customers?.find(
+        c => c.codigo_cliente === 'CLI-00000' || c.nombre_comercial.includes('CONSUMIDOR FINAL')
+      );
+      
+      if (consumidorFinal) {
+        setSelectedCustomer(consumidorFinal);
+      }
+      
       searchInputRef.current?.focus();
     } catch (err) {
       console.error('Error al inicializar POS:', err);
-      setError(err.message || 'Error al inicializar el punto de venta. Verifique que el cliente CONSUMIDOR FINAL esté configurado.');
-    } finally {
-      setIsInitializing(false);
+      setError('Error al cargar datos. Intente recargar la página.');
     }
   };
 
   const filteredProducts = products.filter(p => 
     p.codigo.toLowerCase().includes(search.toLowerCase()) ||
     p.nombre.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredCustomers = customers.filter(c =>
+    c.codigo_cliente.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    c.nombre_comercial.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    c.numero_identificacion.toLowerCase().includes(customerSearch.toLowerCase())
   );
 
   const addToCart = (product) => {
@@ -536,14 +554,15 @@ const POSPage = () => {
     return { subtotal, itbis, total: subtotal + itbis };
   };
 
-  const handleCheckout = async (tipo_venta = 'contado') => {
+  const handleCheckout = async () => {
     if (cart.length === 0) {
       setError('El carrito está vacío');
       return;
     }
 
-    if (!consumidorFinalId) {
-      setError('Cliente Consumidor Final no configurado. Contacte al administrador.');
+    if (!selectedCustomer) {
+      setError('Debe seleccionar un cliente');
+      setShowCustomerModal(true);
       return;
     }
 
@@ -552,13 +571,13 @@ const POSPage = () => {
 
     try {
       const invoiceData = {
-        cliente_id: consumidorFinalId,
+        cliente_id: selectedCustomer.id,
         tipo_ncf: 'B02',
         fecha_emision: new Date().toISOString().split('T')[0],
-        tipo_venta,
+        tipo_venta: 'contado',
         moneda: 'DOP',
         descuento: 0,
-        notas: 'Venta realizada desde Punto de Venta (POS)',
+        notas: 'Venta POS',
         items: cart.map(item => ({
           producto_id: item.producto_id,
           cantidad: item.cantidad,
@@ -577,18 +596,18 @@ const POSPage = () => {
       await initializePOS();
     } catch (err) {
       console.error('Error al crear venta:', err);
-      
-      if (err.isNetworkError) {
-        setError('❌ Sin conexión al servidor. Verifique su red.');
-      } else if (err.isTimeout) {
-        setError('❌ La operación tardó demasiado. Intente nuevamente.');
-      } else {
-        setError(err.response?.data?.message || 'Error al registrar la venta');
-      }
+      setError(err.response?.data?.message || 'Error al registrar la venta');
     } finally {
       setLoading(false);
       searchInputRef.current?.focus();
     }
+  };
+
+  const selectCustomer = (customer) => {
+    setSelectedCustomer(customer);
+    setShowCustomerModal(false);
+    setCustomerSearch('');
+    searchInputRef.current?.focus();
   };
 
   const totals = calculateTotals();
@@ -597,58 +616,30 @@ const POSPage = () => {
     const handleKeyPress = (e) => {
       if (e.key === 'F1') {
         e.preventDefault();
-        handleCheckout('contado');
+        handleCheckout();
       }
       if (e.key === 'F2') {
         e.preventDefault();
         setCart([]);
       }
+      if (e.key === 'F3') {
+        e.preventDefault();
+        setShowCustomerModal(true);
+      }
       if (e.key === 'Escape') {
         setSearch('');
+        setShowCustomerModal(false);
         searchInputRef.current?.focus();
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [cart]);
-
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Iniciando Punto de Venta...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!consumidorFinalId && !isInitializing) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="max-w-md bg-white rounded-lg shadow-xl p-8 text-center">
-          <div className="text-red-600 mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Error de Configuración</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={initializePOS}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Reintentar
-          </button>
-        </div>
-      </div>
-    );
-  }
+  }, [cart, selectedCustomer]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Panel Izquierdo - Productos */}
+      {/* Panel Izquierdo */}
       <div className="flex-1 p-4 overflow-y-auto">
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
           <div className="flex justify-between items-center">
@@ -669,21 +660,43 @@ const POSPage = () => {
         {error && <Notification type="error" message={error} />}
         {success && <Notification type="success" message={success} />}
 
+        {/* Cliente Seleccionado */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <User className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-500">Cliente:</p>
+                <p className="font-semibold text-gray-900">
+                  {selectedCustomer ? selectedCustomer.nombre_comercial : 'No seleccionado'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCustomerModal(true)}
+              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+            >
+              Cambiar (F3)
+            </button>
+          </div>
+        </div>
+
+        {/* Buscador */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="Buscar por código o nombre (ESC para limpiar)..."
+              placeholder="Buscar producto por código o nombre..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border text-lg"
-              autoFocus
             />
           </div>
         </div>
 
+        {/* Grid Productos */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {filteredProducts.map(product => (
             <button
@@ -713,16 +726,9 @@ const POSPage = () => {
             </button>
           ))}
         </div>
-
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <ShoppingCart className="w-16 h-16 mx-auto mb-4 opacity-50" />
-            <p>No se encontraron productos</p>
-          </div>
-        )}
       </div>
 
-      {/* Panel Derecho - Carrito */}
+      {/* Panel Carrito */}
       <div className="w-96 bg-white shadow-xl flex flex-col">
         <div className="p-4 border-b">
           <div className="flex items-center justify-between">
@@ -741,7 +747,6 @@ const POSPage = () => {
             <div className="text-center py-12 text-gray-400">
               <ShoppingCart className="w-16 h-16 mx-auto mb-4 opacity-30" />
               <p>Carrito vacío</p>
-              <p className="text-sm">Agrega productos para comenzar</p>
             </div>
           ) : (
             cart.map((item, index) => (
@@ -807,22 +812,22 @@ const POSPage = () => {
 
         <div className="border-t p-4 space-y-2">
           <Button
-            onClick={() => handleCheckout('contado')}
-            disabled={cart.length === 0 || loading}
-            className="w-full bg-green-600 hover:bg-green-700 text-lg py-3 flex items-center justify-center space-x-2"
+            onClick={handleCheckout}
+            disabled={cart.length === 0 || loading || !selectedCustomer}
+            className="w-full bg-green-600 hover:bg-green-700 text-lg py-3"
           >
-            <DollarSign className="w-5 h-5" />
-            <span>{loading ? 'Procesando...' : 'Cobrar (F1)'}</span>
+            <DollarSign className="w-5 h-5 inline mr-2" />
+            {loading ? 'Procesando...' : 'Cobrar (F1)'}
           </Button>
           
           <Button
             onClick={() => setCart([])}
             disabled={cart.length === 0}
             variant="secondary"
-            className="w-full flex items-center justify-center space-x-2"
+            className="w-full"
           >
-            <Trash2 className="w-5 h-5" />
-            <span>Limpiar (F2)</span>
+            <Trash2 className="w-5 h-5 inline mr-2" />
+            Limpiar (F2)
           </Button>
 
           {lastInvoice && (
@@ -831,17 +836,63 @@ const POSPage = () => {
               className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
             >
               <Printer className="w-4 h-4" />
-              <span>Imprimir Última Venta</span>
+              <span>Imprimir Última</span>
             </button>
           )}
         </div>
 
         <div className="border-t p-3 bg-gray-50">
           <p className="text-xs text-gray-600 text-center">
-            <strong>Atajos:</strong> F1=Cobrar | F2=Limpiar | ESC=Buscar
+            F1=Cobrar | F2=Limpiar | F3=Cliente | ESC=Buscar
           </p>
         </div>
       </div>
+
+      {/* Modal Selector de Cliente */}
+      {showCustomerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b">
+              <h3 className="text-lg font-bold">Seleccionar Cliente</h3>
+            </div>
+            
+            <div className="p-4 border-b">
+              <input
+                type="text"
+                placeholder="Buscar cliente..."
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                className="w-full p-2 border rounded"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {filteredCustomers.map(customer => (
+                <button
+                  key={customer.id}
+                  onClick={() => selectCustomer(customer)}
+                  className="w-full p-3 mb-2 border rounded hover:bg-blue-50 text-left"
+                >
+                  <p className="font-semibold">{customer.nombre_comercial}</p>
+                  <p className="text-sm text-gray-600">
+                    {customer.codigo_cliente} | {customer.numero_identificacion}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            <div className="p-4 border-t">
+              <button
+                onClick={() => setShowCustomerModal(false)}
+                className="w-full px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

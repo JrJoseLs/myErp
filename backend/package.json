@@ -4,6 +4,7 @@
   "description": "Backend para ERP/CRM República Dominicana",
   "main": "src/server.js",
   "type": "module",
+  "editor.formatOnSave": true,
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
