@@ -436,7 +436,6 @@ const POSPage = () => {
   const [lastInvoice, setLastInvoice] = useState(null);
   const searchInputRef = useRef(null);
   
-  // ✅ Estado para el ID del consumidor final
   const [consumidorFinalId, setConsumidorFinalId] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -447,7 +446,6 @@ const POSPage = () => {
   const initializePOS = async () => {
     setIsInitializing(true);
     try {
-      // Cargar cliente Consumidor Final y productos en paralelo
       const [id, productsData] = await Promise.all([
         getConsumidorFinal(),
         getProducts({ activo: true, limit: 100 })
@@ -455,8 +453,6 @@ const POSPage = () => {
       
       setConsumidorFinalId(id);
       setProducts(productsData.products || []);
-      
-      // Focus automático en búsqueda
       searchInputRef.current?.focus();
     } catch (err) {
       console.error('Error al inicializar POS:', err);
@@ -500,7 +496,6 @@ const POSPage = () => {
       }
     }
     
-    // Limpiar búsqueda y hacer focus
     setSearch('');
     searchInputRef.current?.focus();
   };
@@ -558,7 +553,7 @@ const POSPage = () => {
     try {
       const invoiceData = {
         cliente_id: consumidorFinalId,
-        tipo_ncf: 'B02', // Consumo
+        tipo_ncf: 'B02',
         fecha_emision: new Date().toISOString().split('T')[0],
         tipo_venta,
         moneda: 'DOP',
@@ -579,12 +574,10 @@ const POSPage = () => {
       setCart([]);
       setTimeout(() => setSuccess(null), 3000);
       
-      // Recargar productos para actualizar stock
       await initializePOS();
     } catch (err) {
       console.error('Error al crear venta:', err);
       
-      // Manejo de errores específicos
       if (err.isNetworkError) {
         setError('❌ Sin conexión al servidor. Verifique su red.');
       } else if (err.isTimeout) {
@@ -600,20 +593,16 @@ const POSPage = () => {
 
   const totals = calculateTotals();
 
-  // Atajos de teclado
   useEffect(() => {
     const handleKeyPress = (e) => {
-      // F1: Cobrar (Efectivo)
       if (e.key === 'F1') {
         e.preventDefault();
         handleCheckout('contado');
       }
-      // F2: Limpiar carrito
       if (e.key === 'F2') {
         e.preventDefault();
         setCart([]);
       }
-      // ESC: Limpiar búsqueda
       if (e.key === 'Escape') {
         setSearch('');
         searchInputRef.current?.focus();
@@ -624,7 +613,6 @@ const POSPage = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [cart]);
 
-  // Mostrar pantalla de carga mientras se inicializa
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -636,7 +624,6 @@ const POSPage = () => {
     );
   }
 
-  // Mostrar error crítico si no se pudo inicializar
   if (!consumidorFinalId && !isInitializing) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
@@ -663,7 +650,6 @@ const POSPage = () => {
     <div className="min-h-screen bg-gray-50 flex">
       {/* Panel Izquierdo - Productos */}
       <div className="flex-1 p-4 overflow-y-auto">
-        {/* Header */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
           <div className="flex justify-between items-center">
             <div>
@@ -680,11 +666,9 @@ const POSPage = () => {
           </div>
         </div>
 
-        {/* Notificaciones */}
         {error && <Notification type="error" message={error} />}
         {success && <Notification type="success" message={success} />}
 
-        {/* Buscador */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
@@ -694,4 +678,172 @@ const POSPage = () => {
               placeholder="Buscar por código o nombre (ESC para limpiar)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className
+              className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border text-lg"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {filteredProducts.map(product => (
+            <button
+              key={product.id}
+              onClick={() => addToCart(product)}
+              disabled={product.stock_actual === 0}
+              className={`bg-white rounded-lg shadow-md p-4 text-left hover:shadow-lg transition ${
+                product.stock_actual === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
+            >
+              <p className="text-xs text-gray-500 mb-1">{product.codigo}</p>
+              <p className="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm">
+                {product.nombre}
+              </p>
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-bold text-green-600">
+                  {formatCurrency(product.precio_venta)}
+                </span>
+                <span className={`text-xs px-2 py-1 rounded ${
+                  product.stock_actual <= product.stock_minimo 
+                    ? 'bg-red-100 text-red-800' 
+                    : 'bg-green-100 text-green-800'
+                }`}>
+                  Stock: {product.stock_actual}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            <ShoppingCart className="w-16 h-16 mx-auto mb-4 opacity-50" />
+            <p>No se encontraron productos</p>
+          </div>
+        )}
+      </div>
+
+      {/* Panel Derecho - Carrito */}
+      <div className="w-96 bg-white shadow-xl flex flex-col">
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center">
+              <ShoppingCart className="w-6 h-6 mr-2 text-blue-600" />
+              Carrito
+            </h2>
+            <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+              {cart.length} items
+            </span>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {cart.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <ShoppingCart className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <p>Carrito vacío</p>
+              <p className="text-sm">Agrega productos para comenzar</p>
+            </div>
+          ) : (
+            cart.map((item, index) => (
+              <div key={index} className="bg-gray-50 rounded-lg p-3">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 text-sm">
+                      {item.product.nombre}
+                    </p>
+                    <p className="text-xs text-gray-500">{item.product.codigo}</p>
+                  </div>
+                  <button
+                    onClick={() => removeFromCart(item.producto_id)}
+                    className="text-red-600 hover:text-red-800 ml-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => updateQuantity(item.producto_id, -1)}
+                      className="bg-white border border-gray-300 rounded p-1 hover:bg-gray-100"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-12 text-center font-semibold">
+                      {item.cantidad}
+                    </span>
+                    <button
+                      onClick={() => updateQuantity(item.producto_id, 1)}
+                      className="bg-white border border-gray-300 rounded p-1 hover:bg-gray-100"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <span className="font-bold text-gray-900">
+                    {formatCurrency(item.precio_unitario * item.cantidad)}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {cart.length > 0 && (
+          <div className="border-t p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Subtotal:</span>
+              <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">ITBIS (18%):</span>
+              <span className="font-semibold">{formatCurrency(totals.itbis)}</span>
+            </div>
+            <div className="flex justify-between text-xl font-bold border-t pt-2">
+              <span>TOTAL:</span>
+              <span className="text-green-600">{formatCurrency(totals.total)}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="border-t p-4 space-y-2">
+          <Button
+            onClick={() => handleCheckout('contado')}
+            disabled={cart.length === 0 || loading}
+            className="w-full bg-green-600 hover:bg-green-700 text-lg py-3 flex items-center justify-center space-x-2"
+          >
+            <DollarSign className="w-5 h-5" />
+            <span>{loading ? 'Procesando...' : 'Cobrar (F1)'}</span>
+          </Button>
+          
+          <Button
+            onClick={() => setCart([])}
+            disabled={cart.length === 0}
+            variant="secondary"
+            className="w-full flex items-center justify-center space-x-2"
+          >
+            <Trash2 className="w-5 h-5" />
+            <span>Limpiar (F2)</span>
+          </Button>
+
+          {lastInvoice && (
+            <button
+              onClick={() => window.open(`/invoices/${lastInvoice.id}`, '_blank')}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Imprimir Última Venta</span>
+            </button>
+          )}
+        </div>
+
+        <div className="border-t p-3 bg-gray-50">
+          <p className="text-xs text-gray-600 text-center">
+            <strong>Atajos:</strong> F1=Cobrar | F2=Limpiar | ESC=Buscar
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default POSPage;
