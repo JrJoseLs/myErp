@@ -1,3 +1,29 @@
+// import express from 'express';
+// import {
+//   getInvoices,
+//   getInvoiceById,
+//   createInvoice,
+//   anularInvoice,
+//   registerPayment,
+//   getInvoiceStats,
+// } from '../controllers/invoiceController.js';
+// import { protect } from '../middlewares/authMiddleware.js';
+// import { restrictTo } from '../middlewares/roleMiddleware.js';
+
+// const router = express.Router();
+
+// const allowedRoles = restrictTo('Administrador', 'Vendedor', 'Contabilidad');
+
+// router.get('/stats', protect, allowedRoles, getInvoiceStats);
+// router.get('/', protect, allowedRoles, getInvoices);
+// router.get('/:id', protect, allowedRoles, getInvoiceById);
+// router.post('/', protect, allowedRoles, createInvoice);
+// router.patch('/:id/anular', protect, allowedRoles, anularInvoice);
+// router.post('/:id/payments', protect, allowedRoles, registerPayment);
+
+// export default router;
+
+// backend/src/routes/invoiceRoutes.js
 import express from 'express';
 import {
   getInvoices,
@@ -12,13 +38,21 @@ import { restrictTo } from '../middlewares/roleMiddleware.js';
 
 const router = express.Router();
 
-const allowedRoles = restrictTo('Administrador', 'Vendedor', 'Contabilidad');
+// Roles permitidos para ver facturas
+const viewRoles = restrictTo('Administrador', 'Vendedor', 'Contabilidad', 'Gerente');
 
-router.get('/stats', protect, allowedRoles, getInvoiceStats);
-router.get('/', protect, allowedRoles, getInvoices);
-router.get('/:id', protect, allowedRoles, getInvoiceById);
-router.post('/', protect, allowedRoles, createInvoice);
-router.patch('/:id/anular', protect, allowedRoles, anularInvoice);
-router.post('/:id/payments', protect, allowedRoles, registerPayment);
+// Roles para crear facturas
+const createRoles = restrictTo('Administrador', 'Vendedor');
+
+// Solo administradores pueden anular
+const adminOnly = restrictTo('Administrador');
+
+// Rutas
+router.get('/stats', protect, viewRoles, getInvoiceStats);
+router.get('/', protect, viewRoles, getInvoices);
+router.get('/:id', protect, viewRoles, getInvoiceById);
+router.post('/', protect, createRoles, createInvoice);
+router.patch('/:id/anular', protect, adminOnly, anularInvoice);
+router.post('/:id/payments', protect, viewRoles, registerPayment);
 
 export default router;
