@@ -3,6 +3,7 @@
 import express from 'express';
 import cors from 'cors';
 import { appConfig } from './config/config.js';
+import reportRoutes from './routes/reportRoutes.js';
 
 // Importar rutas
 import authRoutes from './routes/authRoutes.js';
@@ -21,6 +22,7 @@ const app = express();
 // ============================================
 // MIDDLEWARES GLOBALES
 // ============================================
+app.use('/api/v1/reports', reportRoutes);
 
 app.use(
   cors({
