@@ -1,4 +1,4 @@
-// backend/src/controllers/customerController.js
+// backend/src/controllers/customerController.js - VERSIÓN COMPLETA CORREGIDA
 
 import { Customer } from '../models/index.js';
 import { Op } from 'sequelize';
@@ -286,6 +286,59 @@ export const generateCustomerCode = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al generar código de cliente',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * ✅ NUEVO ENDPOINT: Obtener o crear cliente "Consumidor Final"
+ * @desc    Obtener el cliente Consumidor Final (CLI-00000)
+ * @route   GET /api/v1/customers/consumidor-final
+ * @access  Private
+ */
+export const getConsumidorFinal = async (req, res) => {
+  try {
+    // Buscar cliente con código CLI-00000
+    let consumidor = await Customer.findOne({
+      where: { codigo_cliente: 'CLI-00000' },
+    });
+
+    // Si no existe, crearlo automáticamente
+    if (!consumidor) {
+      console.log('⚠️ Consumidor Final no encontrado, creando...');
+      
+      consumidor = await Customer.create({
+        codigo_cliente: 'CLI-00000',
+        tipo_identificacion: 'CEDULA',
+        numero_identificacion: '00000000000',
+        nombre_comercial: 'CONSUMIDOR FINAL',
+        razon_social: 'CONSUMIDOR FINAL',
+        tipo_cliente: 'contado',
+        activo: true,
+        limite_credito: 0,
+        balance_actual: 0,
+        dias_credito: 0,
+        notas: 'Cliente genérico para ventas POS sin identificación específica',
+      });
+
+      console.log('✅ Consumidor Final creado con ID:', consumidor.id);
+    }
+
+    res.json({
+      success: true,
+      customer: {
+        id: consumidor.id,
+        codigo_cliente: consumidor.codigo_cliente,
+        nombre_comercial: consumidor.nombre_comercial,
+        numero_identificacion: consumidor.numero_identificacion,
+      },
+    });
+  } catch (error) {
+    console.error('Error al obtener/crear Consumidor Final:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al configurar cliente Consumidor Final',
       error: error.message,
     });
   }

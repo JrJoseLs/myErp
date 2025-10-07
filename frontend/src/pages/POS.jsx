@@ -404,35 +404,54 @@
 
 // export default POSPage;
 
+// frontend/src/pages/POS.jsx - VERSIÓN CORREGIDA Y MEJORADA
+
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { getProducts } from '../services/productService';
 import { 
-  ShoppingCart, Plus, Minus, Trash2, DollarSign, Search,
-  LogOut, Printer, User, UserPlus, X, Package
+  getCustomers, 
+  getConsumidorFinal, 
+  createQuickCustomer 
+} from '../services/customerService';
+import { createInvoice } from '../services/invoiceService';
+import { getNextNCF } from '../services/ncfService';
+import { formatCurrency } from '../utils/formatters';
+import { 
+  ShoppingCart, 
+  Plus, 
+  Minus, 
+  Trash2, 
+  DollarSign,
+  Search,
+  LogOut,
+  Printer,
+  User,
+  UserPlus,
+  X,
+  Package,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
+import Button from '../components/common/Button';
+import Notification from '../components/common/Notification';
 
-// Simulación de datos (reemplazar con tus servicios reales)
-const mockProducts = [
-  { id: 1, codigo: 'PROD-001', nombre: 'Martillo 16oz', precio_venta: 350, stock_actual: 50, itbis_aplicable: true, tasa_itbis: 18, unidad_medida: 'UND' },
-  { id: 2, codigo: 'PROD-002', nombre: 'Destornillador Plano', precio_venta: 180, stock_actual: 75, itbis_aplicable: true, tasa_itbis: 18, unidad_medida: 'UND' },
-  { id: 3, codigo: 'PROD-003', nombre: 'Clavos 3"', precio_venta: 65, stock_actual: 200, itbis_aplicable: true, tasa_itbis: 18, unidad_medida: 'LB' },
-];
-
-const mockCustomers = [
-  { id: 1, codigo_cliente: 'CLI-00000', nombre_comercial: 'CONSUMIDOR FINAL', numero_identificacion: '00000000000', tipo_identificacion: 'CEDULA' },
-  { id: 2, codigo_cliente: 'CLI-00001', nombre_comercial: 'Juan Pérez', numero_identificacion: '00112345678', tipo_identificacion: 'CEDULA' },
-  { id: 3, codigo_cliente: 'CLI-00002', nombre_comercial: 'Constructora ABC', numero_identificacion: '131234567', tipo_identificacion: 'RNC' },
-];
-
-const formatCurrency = (amount) => {
-  return `RD$ ${parseFloat(amount).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
-
-const POSMejorado = () => {
-  const [products] = useState(mockProducts);
-  const [customers] = useState(mockCustomers);
+const POSPage = () => {
+  const { user, logout } = useAuth();
+  const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [cart, setCart] = useState([]);
   const [search, setSearch] = useState('');
-  const [selectedCustomer, setSelectedCustomer] = useState(mockCustomers[0]); // Consumidor Final por defecto
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [consumidorFinalId, setConsumidorFinalId] = useState(null);
+  
+  // Estados de carga y notificaciones
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [lastInvoice, setLastInvoice] = useState(null);
+  const [ncfAvailable, setNcfAvailable] = useState(true);
   
   // Modales
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -449,8 +468,52 @@ const POSMejorado = () => {
   const searchInputRef = useRef(null);
 
   useEffect(() => {
-    searchInputRef.current?.focus();
+    initializePOS();
   }, []);
+
+  const initializePOS = async () => {
+    setLoading(true);
+    try {
+      // 1. Cargar Consumidor Final
+      const consumidorId = await getConsumidorFinal();
+      setConsumidorFinalId(consumidorId);
+
+      // 2. Cargar clientes
+      const customersData = await getCustomers({ activo: true });
+      setCustomers(customersData.customers || []);
+      
+      // 3. Establecer Consumidor Final como predeterminado
+      const consumidor = customersData.customers.find(c => c.id === consumidorId);
+      setSelectedCustomer(consumidor);
+
+      // 4. Cargar productos
+      const productsData = await getProducts({ activo: true });
+      setProducts(productsData.products || []);
+
+      // 5. Verificar disponibilidad de NCF
+      await checkNCFAvailability();
+
+      searchInputRef.current?.focus();
+    } catch (err) {
+      console.error('Error al inicializar POS:', err);
+      setError(err.message || 'Error al inicializar el punto de venta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkNCFAvailability = async () => {
+    try {
+      const ncfData = await getNextNCF('B02');
+      if (ncfData.disponibles < 10) {
+        setError(`⚠️ Quedan solo ${ncfData.disponibles} NCF disponibles. Solicite nuevos rangos.`);
+      }
+      setNcfAvailable(ncfData.disponibles > 0);
+    } catch (err) {
+      console.error('Error al verificar NCF:', err);
+      setNcfAvailable(false);
+    }
+  };
 
   const filteredProducts = products.filter(p => 
     p.codigo.toLowerCase().includes(search.toLowerCase()) ||
@@ -473,6 +536,9 @@ const POSMejorado = () => {
             ? { ...item, cantidad: item.cantidad + 1 }
             : item
         ));
+      } else {
+        setError(`Stock máximo: ${product.stock_actual}`);
+        setTimeout(() => setError(null), 2000);
       }
     } else {
       if (product.stock_actual > 0) {
@@ -483,6 +549,9 @@ const POSMejorado = () => {
           precio_unitario: product.precio_venta,
           descuento: 0,
         }]);
+      } else {
+        setError('Producto sin stock');
+        setTimeout(() => setError(null), 2000);
       }
     }
     
@@ -495,7 +564,11 @@ const POSMejorado = () => {
       if (item.producto_id === productId) {
         const newQty = item.cantidad + change;
         if (newQty <= 0) return null;
-        if (newQty > item.product.stock_actual) return item;
+        if (newQty > item.product.stock_actual) {
+          setError(`Stock máximo: ${item.product.stock_actual}`);
+          setTimeout(() => setError(null), 2000);
+          return item;
+        }
         return { ...item, cantidad: newQty };
       }
       return item;
@@ -521,15 +594,70 @@ const POSMejorado = () => {
     return { subtotal, itbis, total: subtotal + itbis };
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async (tipo_venta = 'contado') => {
     if (cart.length === 0) {
-      alert('El carrito está vacío');
+      setError('El carrito está vacío');
       return;
     }
 
-    alert(`Venta procesada:\nCliente: ${selectedCustomer.nombre_comercial}\nTotal: ${formatCurrency(totals.total)}`);
-    setCart([]);
-    searchInputRef.current?.focus();
+    if (!selectedCustomer) {
+      setError('Debe seleccionar un cliente');
+      return;
+    }
+
+    if (!ncfAvailable) {
+      setError('No hay NCF disponibles. No se puede procesar la venta.');
+      return;
+    }
+
+    setProcessing(true);
+    setError(null);
+
+    try {
+      const invoiceData = {
+        cliente_id: selectedCustomer.id,
+        tipo_ncf: 'B02', // Consumo
+        fecha_emision: new Date().toISOString().split('T')[0],
+        tipo_venta,
+        moneda: 'DOP',
+        descuento: 0,
+        notas: `Venta POS - Usuario: ${user?.nombre_completo}`,
+        items: cart.map(item => ({
+          producto_id: item.producto_id,
+          cantidad: item.cantidad,
+          precio_unitario: item.precio_unitario,
+          descuento: item.descuento,
+        })),
+      };
+
+      const result = await createInvoice(invoiceData);
+      
+      setSuccess(`✅ Venta #${result.invoice.numero_factura} registrada exitosamente`);
+      setLastInvoice(result.invoice);
+      setCart([]);
+      
+      // Restablecer al Consumidor Final si no lo era
+      if (selectedCustomer.id !== consumidorFinalId) {
+        const consumidor = customers.find(c => c.id === consumidorFinalId);
+        setSelectedCustomer(consumidor);
+      }
+      
+      setTimeout(() => setSuccess(null), 5000);
+      
+      // Recargar productos para actualizar stock
+      const productsData = await getProducts({ activo: true });
+      setProducts(productsData.products || []);
+      
+      // Verificar NCF después de cada venta
+      await checkNCFAvailability();
+      
+    } catch (err) {
+      console.error('Error al crear venta:', err);
+      setError(err.response?.data?.message || 'Error al registrar la venta');
+    } finally {
+      setProcessing(false);
+      searchInputRef.current?.focus();
+    }
   };
 
   const selectCustomer = (customer) => {
@@ -539,23 +667,33 @@ const POSMejorado = () => {
     searchInputRef.current?.focus();
   };
 
-  const handleCreateCustomer = () => {
+  const handleCreateCustomer = async () => {
     if (!newCustomer.nombre_comercial || !newCustomer.numero_identificacion) {
-      alert('Complete todos los campos');
+      setError('Complete todos los campos obligatorios');
       return;
     }
 
-    const customer = {
-      id: customers.length + 1,
-      codigo_cliente: `CLI-${String(customers.length).padStart(5, '0')}`,
-      ...newCustomer
-    };
-
-    alert(`Cliente creado: ${customer.nombre_comercial}`);
-    setSelectedCustomer(customer);
-    setShowNewCustomerModal(false);
-    setNewCustomer({ nombre_comercial: '', numero_identificacion: '', tipo_identificacion: 'CEDULA' });
-    searchInputRef.current?.focus();
+    try {
+      const customer = await createQuickCustomer(newCustomer);
+      
+      // Actualizar lista de clientes
+      const customersData = await getCustomers({ activo: true });
+      setCustomers(customersData.customers || []);
+      
+      setSelectedCustomer(customer);
+      setSuccess(`Cliente ${customer.nombre_comercial} creado exitosamente`);
+      setTimeout(() => setSuccess(null), 3000);
+      
+      setShowNewCustomerModal(false);
+      setNewCustomer({ 
+        nombre_comercial: '', 
+        numero_identificacion: '', 
+        tipo_identificacion: 'CEDULA' 
+      });
+      searchInputRef.current?.focus();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al crear cliente');
+    }
   };
 
   const totals = calculateTotals();
@@ -565,7 +703,7 @@ const POSMejorado = () => {
     const handleKeyPress = (e) => {
       if (e.key === 'F1') {
         e.preventDefault();
-        handleCheckout();
+        handleCheckout('contado');
       }
       if (e.key === 'F2') {
         e.preventDefault();
@@ -591,6 +729,17 @@ const POSMejorado = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [cart, selectedCustomer]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <ShoppingCart className="w-16 h-16 text-blue-600 mx-auto mb-4 animate-pulse" />
+          <p className="text-lg text-gray-600">Cargando Punto de Venta...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Panel Izquierdo - Productos */}
@@ -600,14 +749,35 @@ const POSMejorado = () => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Punto de Venta</h1>
-              <p className="text-sm text-gray-600">Usuario Demo</p>
+              <p className="text-sm text-gray-600">{user?.nombre_completo} - {user?.rol}</p>
             </div>
-            <button className="flex items-center space-x-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+            <button
+              onClick={logout}
+              className="flex items-center space-x-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+            >
               <LogOut className="w-4 h-4" />
               <span>Salir</span>
             </button>
           </div>
         </div>
+
+        {/* Notificaciones */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded-r-lg">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+              <p className="ml-3 text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-4 rounded-r-lg">
+            <div className="flex">
+              <CheckCircle className="h-5 w-5 text-green-400" />
+              <p className="ml-3 text-sm text-green-700">{success}</p>
+            </div>
+          </div>
+        )}
 
         {/* Cliente Seleccionado */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
@@ -616,8 +786,12 @@ const POSMejorado = () => {
               <User className="w-5 h-5 text-blue-600" />
               <div>
                 <p className="text-xs text-gray-500">Cliente:</p>
-                <p className="font-semibold text-gray-900">{selectedCustomer.nombre_comercial}</p>
-                <p className="text-xs text-gray-500">{selectedCustomer.numero_identificacion}</p>
+                <p className="font-semibold text-gray-900">
+                  {selectedCustomer?.nombre_comercial || 'Sin seleccionar'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {selectedCustomer?.numero_identificacion || ''}
+                </p>
               </div>
             </div>
             <div className="flex space-x-2">
@@ -661,17 +835,25 @@ const POSMejorado = () => {
               onClick={() => addToCart(product)}
               disabled={product.stock_actual === 0}
               className={`bg-white rounded-lg shadow-md p-4 text-left hover:shadow-lg transition ${
-                product.stock_actual === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                product.stock_actual === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-2 hover:border-blue-500'
               }`}
             >
               <p className="text-xs text-gray-500 mb-1">{product.codigo}</p>
-              <p className="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm">{product.nombre}</p>
+              <p className="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm">
+                {product.nombre}
+              </p>
               <div className="flex justify-between items-center">
-                <span className="text-lg font-bold text-green-600">{formatCurrency(product.precio_venta)}</span>
+                <span className="text-lg font-bold text-green-600">
+                  {formatCurrency(product.precio_venta)}
+                </span>
                 <span className={`text-xs px-2 py-1 rounded ${
-                  product.stock_actual <= 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                  product.stock_actual === 0 
+                    ? 'bg-red-100 text-red-800'
+                    : product.stock_actual <= product.stock_minimo 
+                    ? 'bg-yellow-100 text-yellow-800' 
+                    : 'bg-green-100 text-green-800'
                 }`}>
-                  Stock: {product.stock_actual}
+                  {product.stock_actual} {product.unidad_medida}
                 </span>
               </div>
             </button>
@@ -712,7 +894,9 @@ const POSMejorado = () => {
               <div key={index} className="bg-gray-50 rounded-lg p-3">
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-900 text-sm">{item.product.nombre}</p>
+                    <p className="font-semibold text-gray-900 text-sm">
+                      {item.product.nombre}
+                    </p>
                     <p className="text-xs text-gray-500">{item.product.codigo}</p>
                   </div>
                   <button
@@ -731,7 +915,9 @@ const POSMejorado = () => {
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-12 text-center font-semibold">{item.cantidad}</span>
+                    <span className="w-12 text-center font-semibold">
+                      {item.cantidad}
+                    </span>
                     <button
                       onClick={() => updateQuantity(item.producto_id, 1)}
                       className="bg-white border border-gray-300 rounded p-1 hover:bg-gray-100"
@@ -766,28 +952,39 @@ const POSMejorado = () => {
         )}
 
         <div className="border-t p-4 space-y-2">
-          <button
-            onClick={handleCheckout}
-            disabled={cart.length === 0}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-lg py-3 rounded-lg flex items-center justify-center space-x-2 font-semibold"
+          <Button
+            onClick={() => handleCheckout('contado')}
+            disabled={cart.length === 0 || processing || !ncfAvailable}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-lg py-3 flex items-center justify-center space-x-2 font-semibold"
           >
             <DollarSign className="w-5 h-5" />
-            <span>Cobrar (F1)</span>
-          </button>
+            <span>{processing ? 'Procesando...' : 'Cobrar (F1)'}</span>
+          </Button>
           
-          <button
+          <Button
             onClick={() => setCart([])}
             disabled={cart.length === 0}
-            className="w-full bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-800 py-2 rounded-lg flex items-center justify-center space-x-2"
+            variant="secondary"
+            className="w-full flex items-center justify-center space-x-2"
           >
             <Trash2 className="w-5 h-5" />
             <span>Limpiar (F2)</span>
-          </button>
+          </Button>
+
+          {lastInvoice && (
+            <button
+              onClick={() => window.open(`/invoices/${lastInvoice.id}`, '_blank')}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Ver Última Venta</span>
+            </button>
+          )}
         </div>
 
         <div className="border-t p-3 bg-gray-50">
           <p className="text-xs text-gray-600 text-center">
-            <strong>Atajos:</strong> F1=Cobrar | F2=Limpiar | F3=Cliente | F4=Nuevo Cliente | ESC=Buscar
+            <strong>Atajos:</strong> F1=Cobrar | F2=Limpiar | F3=Cliente | F4=Nuevo | ESC=Buscar
           </p>
         </div>
       </div>
@@ -798,7 +995,10 @@ const POSMejorado = () => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-lg font-bold">Seleccionar Cliente</h3>
-              <button onClick={() => setShowCustomerModal(false)} className="text-gray-500 hover:text-gray-700">
+              <button 
+                onClick={() => setShowCustomerModal(false)} 
+                className="text-gray-500 hover:text-gray-700"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -806,7 +1006,7 @@ const POSMejorado = () => {
             <div className="p-4 border-b">
               <input
                 type="text"
-                placeholder="Buscar cliente..."
+                placeholder="Buscar cliente por nombre, código o identificación..."
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
                 className="w-full p-2 border rounded"
@@ -815,18 +1015,36 @@ const POSMejorado = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
-              {filteredCustomers.map(customer => (
-                <button
-                  key={customer.id}
-                  onClick={() => selectCustomer(customer)}
-                  className="w-full p-3 mb-2 border rounded hover:bg-blue-50 text-left"
-                >
-                  <p className="font-semibold">{customer.nombre_comercial}</p>
-                  <p className="text-sm text-gray-600">
-                    {customer.codigo_cliente} | {customer.tipo_identificacion}: {customer.numero_identificacion}
-                  </p>
-                </button>
-              ))}
+              {filteredCustomers.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <User className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                  <p>No se encontraron clientes</p>
+                </div>
+              ) : (
+                filteredCustomers.map(customer => (
+                  <button
+                    key={customer.id}
+                    onClick={() => selectCustomer(customer)}
+                    className={`w-full p-3 mb-2 border rounded hover:bg-blue-50 text-left transition ${
+                      selectedCustomer?.id === customer.id ? 'bg-blue-100 border-blue-500' : ''
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-gray-900">{customer.nombre_comercial}</p>
+                        <p className="text-sm text-gray-600">
+                          {customer.codigo_cliente} | {customer.tipo_identificacion}: {customer.numero_identificacion}
+                        </p>
+                      </div>
+                      {customer.id === consumidorFinalId && (
+                        <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded">
+                          Por defecto
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -838,30 +1056,35 @@ const POSMejorado = () => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-lg font-bold">Nuevo Cliente Rápido</h3>
-              <button onClick={() => setShowNewCustomerModal(false)} className="text-gray-500 hover:text-gray-700">
+              <button 
+                onClick={() => setShowNewCustomerModal(false)} 
+                className="text-gray-500 hover:text-gray-700"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Nombre / Razón Social *</label>
+                <label className="block text-sm font-medium mb-1">
+                  Nombre / Razón Social <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={newCustomer.nombre_comercial}
                   onChange={(e) => setNewCustomer({...newCustomer, nombre_comercial: e.target.value})}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   placeholder="Juan Pérez"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Tipo</label>
+                <label className="block text-sm font-medium mb-1">Tipo de Identificación</label>
                 <select
                   value={newCustomer.tipo_identificacion}
                   onChange={(e) => setNewCustomer({...newCustomer, tipo_identificacion: e.target.value})}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="CEDULA">Cédula</option>
                   <option value="RNC">RNC</option>
@@ -870,27 +1093,40 @@ const POSMejorado = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Número *</label>
+                <label className="block text-sm font-medium mb-1">
+                  Número <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={newCustomer.numero_identificacion}
                   onChange={(e) => setNewCustomer({...newCustomer, numero_identificacion: e.target.value})}
-                  className="w-full p-2 border rounded"
-                  placeholder={newCustomer.tipo_identificacion === 'CEDULA' ? '000-0000000-0' : '0-00-00000-0'}
+                  className="w-full p-2 border rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder={
+                    newCustomer.tipo_identificacion === 'CEDULA' 
+                      ? '000-0000000-0' 
+                      : newCustomer.tipo_identificacion === 'RNC'
+                      ? '0-00-00000-0'
+                      : 'Número de pasaporte'
+                  }
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {newCustomer.tipo_identificacion === 'CEDULA' && '11 dígitos sin guiones'}
+                  {newCustomer.tipo_identificacion === 'RNC' && '9 u 11 dígitos sin guiones'}
+                </p>
               </div>
             </div>
 
             <div className="p-4 border-t flex space-x-2">
               <button
                 onClick={() => setShowNewCustomerModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                className="flex-1 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 font-medium"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCreateCustomer}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                disabled={!newCustomer.nombre_comercial || !newCustomer.numero_identificacion}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
               >
                 Crear Cliente
               </button>
@@ -902,4 +1138,4 @@ const POSMejorado = () => {
   );
 };
 
-export default POSMejorado;
+export default POSPage;

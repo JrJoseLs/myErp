@@ -10,6 +10,7 @@
     "dev": "nodemon src/server.js",
     "init-db": "node src/scripts/initDatabase.js",
     "seed": "node src/scripts/seedDatabase.js",
+    "seed:consumidor": "node src/scripts/seedConsumidorFinal.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": ["erp", "crm", "dominican-republic", "itbis", "ncf"],

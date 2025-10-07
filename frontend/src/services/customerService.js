@@ -60,6 +60,8 @@
 //   }
 // };
 
+// frontend/src/services/customerService.js - VERSIÓN CORREGIDA
+
 import api from './api';
 
 export const getCustomers = async (filters = {}) => {
@@ -72,7 +74,7 @@ export const getCustomers = async (filters = {}) => {
   }
 };
 
-export const getCustomerById = async id => {
+export const getCustomerById = async (id) => {
   try {
     const { data } = await api.get(`/customers/${id}`);
     return data;
@@ -82,7 +84,7 @@ export const getCustomerById = async id => {
   }
 };
 
-export const createCustomer = async customerData => {
+export const createCustomer = async (customerData) => {
   try {
     const { data } = await api.post('/customers', customerData);
     return data;
@@ -102,7 +104,7 @@ export const updateCustomer = async (id, customerData) => {
   }
 };
 
-export const toggleCustomerStatus = async id => {
+export const toggleCustomerStatus = async (id) => {
   try {
     const { data } = await api.patch(`/customers/toggle-status/${id}`);
     return data;
@@ -122,24 +124,68 @@ export const generateCustomerCode = async () => {
   }
 };
 
-// --- FUNCIÓN AÑADIDA PARA CORREGIR EL ERROR DE EXPORTACIÓN ---
 /**
- * Busca el ID del cliente designado como 'Consumidor Final'.
- *
- * NOTA: Debes asegurarte de que tu endpoint '/customers/consumidor-final'
- * exista y devuelva el ID o el objeto del cliente esperado.
+ * ✅ FUNCIÓN CORREGIDA: Obtener o crear cliente "Consumidor Final"
+ * @returns {Promise<number>} ID del cliente consumidor final
  */
 export const getConsumidorFinal = async () => {
   try {
-    // ASUNCIÓN: Tu backend tiene un endpoint para obtener el cliente por defecto.
+    // Usar el endpoint específico del backend
     const { data } = await api.get('/customers/consumidor-final');
-    // ASUNCIÓN: El endpoint devuelve un objeto con la estructura { id: '...' }
-    // o simplemente el ID directamente. Aquí se retorna `data.id` o `data`.
-    return data.id || data;
+    
+    if (data.success && data.customer) {
+      return data.customer.id;
+    }
+    
+    throw new Error('No se pudo obtener el cliente Consumidor Final');
+    
   } catch (error) {
-    console.error('Error al obtener el ID de Consumidor Final:', error); // Este error será capturado en POS.jsx para mostrar el mensaje de configuración.
+    console.error('❌ Error al obtener Consumidor Final:', error);
     throw new Error(
-      'No se pudo obtener el ID del Consumidor Final. Verifique la configuración del servidor.'
+      error.response?.data?.message || 
+      'No se pudo configurar el cliente Consumidor Final. Contacte al administrador.'
     );
+  }
+};
+
+/**
+ * ✅ NUEVA: Verificar si existe el cliente Consumidor Final
+ * @returns {Promise<boolean>}
+ */
+export const verifyConsumidorFinal = async () => {
+  try {
+    await getConsumidorFinal();
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+/**
+ * ✅ NUEVA: Crear cliente rápido desde POS
+ * @param {Object} customerData - Datos mínimos del cliente
+ * @returns {Promise<Object>} Cliente creado
+ */
+export const createQuickCustomer = async (customerData) => {
+  try {
+    // Generar código automático
+    const codeData = await generateCustomerCode();
+    
+    const quickData = {
+      codigo_cliente: codeData.codigo,
+      tipo_identificacion: customerData.tipo_identificacion || 'CEDULA',
+      numero_identificacion: customerData.numero_identificacion,
+      nombre_comercial: customerData.nombre_comercial,
+      razon_social: customerData.nombre_comercial,
+      tipo_cliente: 'contado',
+      activo: true,
+      notas: 'Cliente creado desde POS',
+    };
+    
+    const { data } = await api.post('/customers', quickData);
+    return data.customer;
+  } catch (error) {
+    console.error('Error al crear cliente rápido:', error);
+    throw error;
   }
 };
