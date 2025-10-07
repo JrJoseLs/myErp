@@ -1,6 +1,8 @@
 import { User, Role } from '../models/index.js';
 import { Op } from 'sequelize';
-import bcrypt from 'bcrypt';
+//import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
+
 
 const USER_EXCLUDE_FIELDS = ['password', 'created_at', 'updated_at'];
 
