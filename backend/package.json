@@ -11,9 +11,10 @@
     "init-db": "node src/scripts/initDatabase.js",
     "seed": "node src/scripts/seedDatabase.js",
     "seed:consumidor": "node src/scripts/seedConsumidorFinal.js",
+    "test:reports": "node src/scripts/testReports.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["erp", "crm", "dominican-republic", "itbis", "ncf"],
+  "keywords": ["erp", "crm", "dominican-republic", "itbis", "ncf", "dgii"],
   "author": "Zlb",
   "license": "MIT",
   "dependencies": {

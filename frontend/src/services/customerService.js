@@ -125,26 +125,18 @@ export const generateCustomerCode = async () => {
 };
 
 /**
- * ✅ FUNCIÓN CORREGIDA: Obtener o crear cliente "Consumidor Final"
+ * Obtener o crear cliente "Consumidor Final"
  * @returns {Promise<number>} ID del cliente consumidor final
  */
 export const getConsumidorFinal = async () => {
   try {
-    // Usar el endpoint específico del backend
     const { data } = await api.get('/customers/consumidor-final');
-    
     if (data.success && data.customer) {
       return data.customer.id;
     }
-    
     throw new Error('No se pudo obtener el cliente Consumidor Final');
-    
   } catch (error) {
-    console.error('❌ Error al obtener Consumidor Final:', error);
-    throw new Error(
-      error.response?.data?.message || 
-      'No se pudo configurar el cliente Consumidor Final. Contacte al administrador.'
-    );
+    throw new Error('Configure el cliente CLI-00000 como Consumidor Final');
   }
 };
 
