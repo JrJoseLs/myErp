@@ -1,5 +1,5 @@
 {
-  "name": "erp-crm-backend",
+  "name": "backend",
   "version": "1.0.0",
   "description": "Backend para ERP/CRM República Dominicana",
   "main": "src/server.js",
