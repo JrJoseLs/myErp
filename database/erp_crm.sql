@@ -1,10 +1,12 @@
-CREATE DATABASE  IF NOT EXISTS `erp_crm_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-USE `erp_crm_db`;
 -- MySQL dump 10.13  Distrib 8.0.42, for Win64 (x86_64)
 --
 -- Host: 127.0.0.1    Database: erp_crm_db
 -- ------------------------------------------------------
 -- Server version	8.0.42
+
+-- SOLUCION ERROR 1046: Crea y selecciona la base de datos antes de cualquier instrucción DDL
+CREATE DATABASE IF NOT EXISTS `erp_crm_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `erp_crm_db`;
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -233,7 +235,7 @@ CREATE TABLE `cuentas_por_cobrar` (
   PRIMARY KEY (`id`),
   KEY `factura_id` (`factura_id`),
   KEY `cliente_id` (`cliente_id`),
-  CONSTRAINT `cuentas_por_cobrar_ibfk_1` FOREIGN KEY (`factura_id`) REFERENCES `facturas` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `cuentas_por_cobrar_ibfk_1` FOREIGN KEY (`factura_id`) REFERENCES `facturas` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT `cuentas_por_cobrar_ibfk_2` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -270,7 +272,7 @@ CREATE TABLE `cuentas_por_pagar` (
   PRIMARY KEY (`id`),
   KEY `compra_id` (`compra_id`),
   KEY `proveedor_id` (`proveedor_id`),
-  CONSTRAINT `cuentas_por_pagar_ibfk_1` FOREIGN KEY (`compra_id`) REFERENCES `compras` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `cuentas_por_pagar_ibfk_1` FOREIGN KEY (`compra_id`) REFERENCES `compras` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT `cuentas_por_pagar_ibfk_2` FOREIGN KEY (`proveedor_id`) REFERENCES `proveedores` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -305,7 +307,7 @@ CREATE TABLE `detalle_compras` (
   PRIMARY KEY (`id`),
   KEY `compra_id` (`compra_id`),
   KEY `producto_id` (`producto_id`),
-  CONSTRAINT `detalle_compras_ibfk_1` FOREIGN KEY (`compra_id`) REFERENCES `compras` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `detalle_compras_ibfk_1` FOREIGN KEY (`compra_id`) REFERENCES `compras` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT `detalle_compras_ibfk_2` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -341,9 +343,9 @@ CREATE TABLE `detalle_facturas` (
   PRIMARY KEY (`id`),
   KEY `factura_id` (`factura_id`),
   KEY `producto_id` (`producto_id`),
-  CONSTRAINT `detalle_facturas_ibfk_1` FOREIGN KEY (`factura_id`) REFERENCES `facturas` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `detalle_facturas_ibfk_1` FOREIGN KEY (`factura_id`) REFERENCES `facturas` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT `detalle_facturas_ibfk_2` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -352,7 +354,7 @@ CREATE TABLE `detalle_facturas` (
 
 LOCK TABLES `detalle_facturas` WRITE;
 /*!40000 ALTER TABLE `detalle_facturas` DISABLE KEYS */;
-INSERT INTO `detalle_facturas` VALUES (1,1,2,10,120.00,0.00,18.00,216.00,1200.00,1416.00,'2025-10-05 19:33:09'),(2,2,2,1,120.00,0.00,18.00,21.60,120.00,141.60,'2025-10-05 23:26:18'),(3,3,1,1,50.00,0.00,18.00,9.00,50.00,59.00,'2025-10-05 23:27:25'),(4,4,2,5,120.00,0.00,18.00,108.00,600.00,708.00,'2025-10-06 14:42:55'),(5,5,4,10,20.00,0.00,18.00,36.00,200.00,236.00,'2025-10-06 14:58:27'),(6,6,1,2,50.00,0.00,18.00,18.00,100.00,118.00,'2025-10-06 17:10:10'),(7,7,3,1,200.00,0.00,18.00,36.00,200.00,236.00,'2025-10-06 22:33:42'),(8,8,3,2,200.00,0.00,18.00,72.00,400.00,472.00,'2025-10-06 22:41:46'),(9,9,3,1,200.00,0.00,18.00,36.00,200.00,236.00,'2025-10-07 11:43:20');
+INSERT INTO `detalle_facturas` VALUES (1,1,2,10,120.00,0.00,18.00,216.00,1200.00,1416.00,'2025-10-05 19:33:09'),(2,2,2,1,120.00,0.00,18.00,21.60,120.00,141.60,'2025-10-05 23:26:18'),(3,3,1,1,50.00,0.00,18.00,9.00,50.00,59.00,'2025-10-05 23:27:25'),(4,4,2,5,120.00,0.00,18.00,108.00,600.00,708.00,'2025-10-06 14:42:55'),(5,5,4,10,20.00,0.00,18.00,36.00,200.00,236.00,'2025-10-06 14:58:27'),(6,6,1,2,50.00,0.00,18.00,18.00,100.00,118.00,'2025-10-06 17:10:10'),(7,7,3,1,200.00,0.00,18.00,36.00,200.00,236.00,'2025-10-06 22:33:42'),(8,8,3,2,200.00,0.00,18.00,72.00,400.00,472.00,'2025-10-06 22:41:46'),(9,9,3,1,200.00,0.00,18.00,36.00,200.00,236.00,'2025-10-07 11:43:20'),(10,10,3,1,200.00,0.00,18.00,36.00,200.00,236.00,'2025-10-08 15:39:05');
 /*!40000 ALTER TABLE `detalle_facturas` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -431,11 +433,12 @@ CREATE TABLE `facturas` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `numero_factura` (`numero_factura`),
   UNIQUE KEY `ncf` (`ncf`),
-  KEY `cliente_id` (`cliente_id`),
   KEY `vendedor_id` (`vendedor_id`),
+  KEY `idx_fecha_estado` (`fecha_emision`,`estado`),
+  KEY `idx_cliente_fecha` (`cliente_id`,`fecha_emision`),
   CONSTRAINT `facturas_ibfk_1` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `facturas_ibfk_2` FOREIGN KEY (`vendedor_id`) REFERENCES `usuarios` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -444,7 +447,7 @@ CREATE TABLE `facturas` (
 
 LOCK TABLES `facturas` WRITE;
 /*!40000 ALTER TABLE `facturas` DISABLE KEYS */;
-INSERT INTO `facturas` VALUES (1,'FAC-00001','B0200000001','B02',1,'2025-10-05','2025-10-06','credito','DOP',1200.00,0.00,216.00,1416.00,0.01,866.00,'parcial','',1,0,NULL,NULL,'2025-10-05 19:33:09','2025-10-05 19:34:06'),(2,'FAC-00002','B0200000002','B02',1,'2025-10-06',NULL,'contado','DOP',120.00,0.00,21.60,141.60,141.60,0.00,'pagada','Venta POS',1,0,NULL,NULL,'2025-10-05 23:26:18','2025-10-05 23:26:18'),(3,'FAC-00003','B0200000003','B02',1,'2025-10-06',NULL,'contado','DOP',50.00,0.00,9.00,59.00,59.00,0.00,'pagada','Venta POS',1,0,NULL,NULL,'2025-10-05 23:27:25','2025-10-05 23:27:25'),(4,'FAC-00004','B0200000004','B02',3,'2025-10-06','2025-10-05','credito','DOP',600.00,0.00,108.00,708.00,0.00,508.00,'parcial','',1,0,NULL,NULL,'2025-10-06 14:42:55','2025-10-06 14:43:10'),(5,'FAC-00005','B0200000005','B02',2,'2025-10-06','2025-10-07','credito','DOP',200.00,0.00,36.00,236.00,0.00,236.00,'pendiente','',1,0,NULL,NULL,'2025-10-06 14:58:27','2025-10-06 14:58:27'),(6,'FAC-00006','B0200000006','B02',2,'2025-10-06',NULL,'contado','DOP',100.00,0.00,18.00,118.00,118.00,0.00,'pagada','Venta POS',1,0,NULL,NULL,'2025-10-06 17:10:10','2025-10-06 17:10:10'),(7,'FAC-00007','B0200000007','B02',3,'2025-10-07',NULL,'contado','DOP',200.00,0.00,36.00,236.00,236.00,0.00,'pagada','Venta POS - Usuario: Administrador Sistema',1,0,NULL,NULL,'2025-10-06 22:33:42','2025-10-06 22:33:42'),(8,'FAC-00008','B0200000008','B02',3,'2025-10-07',NULL,'contado','DOP',400.00,0.00,72.00,472.00,472.00,0.00,'pagada','Venta POS - Usuario: Administrador Sistema',1,0,NULL,NULL,'2025-10-06 22:41:46','2025-10-06 22:41:46'),(9,'FAC-00009','B0200000009','B02',3,'2025-10-07',NULL,'contado','DOP',200.00,0.00,36.00,236.00,236.00,0.00,'pagada','Venta POS - Usuario: Administrador Sistema',1,0,NULL,NULL,'2025-10-07 11:43:20','2025-10-07 11:43:20');
+INSERT INTO `facturas` VALUES (1,'FAC-00001','B0200000001','B02',1,'2025-10-05','2025-10-06','credito','DOP',1200.00,0.00,216.00,1416.00,0.01,866.00,'parcial','',1,0,NULL,NULL,'2025-10-05 19:33:09','2025-10-05 19:34:06'),(2,'FAC-00002','B0200000002','B02',1,'2025-10-06',NULL,'contado','DOP',120.00,0.00,21.60,141.60,141.60,0.00,'pagada','Venta POS',1,0,NULL,NULL,'2025-10-05 23:26:18','2025-10-05 23:26:18'),(3,'FAC-00003','B0200000003','B02',1,'2025-10-06',NULL,'contado','DOP',50.00,0.00,9.00,59.00,59.00,0.00,'pagada','Venta POS',1,0,NULL,NULL,'2025-10-05 23:27:25','2025-10-05 23:27:25'),(4,'FAC-00004','B0200000004','B02',3,'2025-10-06','2025-10-05','credito','DOP',600.00,0.00,108.00,708.00,0.00,508.00,'parcial','',1,0,NULL,NULL,'2025-10-06 14:42:55','2025-10-06 14:43:10'),(5,'FAC-00005','B0200000005','B02',2,'2025-10-06','2025-10-07','credito','DOP',200.00,0.00,36.00,236.00,0.00,236.00,'pendiente','',1,0,NULL,NULL,'2025-10-06 14:58:27','2025-10-06 14:58:27'),(6,'FAC-00006','B0200000006','B02',2,'2025-10-06',NULL,'contado','DOP',100.00,0.00,18.00,118.00,118.00,0.00,'pagada','Venta POS',1,0,NULL,NULL,'2025-10-06 17:10:10','2025-10-06 17:10:10'),(7,'FAC-00007','B0200000007','B02',3,'2025-10-07',NULL,'contado','DOP',200.00,0.00,36.00,236.00,236.00,0.00,'anulada','Venta POS - Usuario: Administrador Sistema',1,1,'devolucion de mercancia ','2025-10-08 14:43:08','2025-10-06 22:33:42','2025-10-08 14:43:08'),(8,'FAC-00008','B0200000008','B02',3,'2025-10-07',NULL,'contado','DOP',400.00,0.00,72.00,472.00,472.00,0.00,'pagada','Venta POS - Usuario: Administrador Sistema',1,0,NULL,NULL,'2025-10-06 22:41:46','2025-10-06 22:41:46'),(9,'FAC-00009','B0200000009','B02',3,'2025-10-07',NULL,'contado','DOP',200.00,0.00,36.00,236.00,236.00,0.00,'pagada','Venta POS - Usuario: Administrador Sistema',1,0,NULL,NULL,'2025-10-07 11:43:20','2025-10-07 11:43:20'),(10,'FAC-00010','B0200000010','B02',3,'2025-10-08',NULL,'contado','DOP',200.00,0.00,36.00,236.00,236.00,0.00,'anulada','Venta POS - Usuario: Administrador Sistema',1,1,'devolución, no era correcta la mercancía ','2025-10-08 15:39:38','2025-10-08 15:39:05','2025-10-08 15:39:38');
 /*!40000 ALTER TABLE `facturas` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -466,11 +469,12 @@ CREATE TABLE `movimientos_inventario` (
   `usuario_id` int DEFAULT NULL,
   `fecha_movimiento` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `producto_id` (`producto_id`),
+  KEY `idx_fecha_movimiento` (`fecha_movimiento`),
   KEY `usuario_id` (`usuario_id`),
+  KEY `idx_producto_fecha` (`producto_id`,`fecha_movimiento`),
   CONSTRAINT `movimientos_inventario_ibfk_1` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `movimientos_inventario_ibfk_2` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -479,7 +483,7 @@ CREATE TABLE `movimientos_inventario` (
 
 LOCK TABLES `movimientos_inventario` WRITE;
 /*!40000 ALTER TABLE `movimientos_inventario` DISABLE KEYS */;
-INSERT INTO `movimientos_inventario` VALUES (1,2,'salida',10,50.00,'','Devolución, llegaron 10 llave de cubo no ajustables ',1,'2025-10-05 19:30:13'),(2,2,'entrada',10,50.00,'','ajuste de la devolución de las 10 llaves de cubo que llegaron por error',1,'2025-10-05 19:30:55'),(3,2,'salida',10,NULL,'FAC-00001','Venta - Factura FAC-00001',1,'2025-10-05 19:33:09'),(4,2,'salida',1,NULL,'FAC-00002','Venta - Factura FAC-00002',1,'2025-10-05 23:26:18'),(5,1,'salida',1,NULL,'FAC-00003','Venta - Factura FAC-00003',1,'2025-10-05 23:27:25'),(6,2,'salida',5,NULL,'FAC-00004','Venta - Factura FAC-00004',1,'2025-10-06 14:42:55'),(7,4,'salida',10,NULL,'FAC-00005','Venta - Factura FAC-00005',1,'2025-10-06 14:58:27'),(8,4,'entrada',69,10.00,'','Compra Cable 12',1,'2025-10-06 14:59:52'),(9,1,'salida',2,NULL,'FAC-00006','Venta - Factura FAC-00006',1,'2025-10-06 17:10:10'),(10,3,'salida',1,NULL,'FAC-00007','Venta - Factura FAC-00007',1,'2025-10-06 22:33:42'),(11,3,'salida',2,NULL,'FAC-00008','Venta - Factura FAC-00008',1,'2025-10-06 22:41:46'),(12,3,'entrada',10,20.00,'','compra ',1,'2025-10-07 11:02:17'),(13,3,'salida',1,NULL,'FAC-00009','Venta - Factura FAC-00009',1,'2025-10-07 11:43:20');
+INSERT INTO `movimientos_inventario` VALUES (1,2,'salida',10,50.00,'','Devolución, llegaron 10 llave de cubo no ajustables ',1,'2025-10-05 19:30:13'),(2,2,'entrada',10,50.00,'','ajuste de la devolución de las 10 llaves de cubo que llegaron por error',1,'2025-10-05 19:30:55'),(3,2,'salida',10,NULL,'FAC-00001','Venta - Factura FAC-00001',1,'2025-10-05 19:33:09'),(4,2,'salida',1,NULL,'FAC-00002','Venta - Factura FAC-00002',1,'2025-10-05 23:26:18'),(5,1,'salida',1,NULL,'FAC-00003','Venta - Factura FAC-00003',1,'2025-10-05 23:27:25'),(6,2,'salida',5,NULL,'FAC-00004','Venta - Factura FAC-00004',1,'2025-10-06 14:42:55'),(7,4,'salida',10,NULL,'FAC-00005','Venta - Factura FAC-00005',1,'2025-10-06 14:58:27'),(8,4,'entrada',69,10.00,'','Compra Cable 12',1,'2025-10-06 14:59:52'),(9,1,'salida',2,NULL,'FAC-00006','Venta - Factura FAC-00006',1,'2025-10-06 17:10:10'),(10,3,'salida',1,NULL,'FAC-00007','Venta - Factura FAC-00007',1,'2025-10-06 22:33:42'),(11,3,'salida',2,NULL,'FAC-00008','Venta - Factura FAC-00008',1,'2025-10-06 22:41:46'),(12,3,'entrada',10,20.00,'','compra ',1,'2025-10-07 11:02:17'),(13,3,'salida',1,NULL,'FAC-00009','Venta - Factura FAC-00009',1,'2025-10-07 11:43:20'),(14,3,'entrada',1,NULL,'FAC-00007','Anulación de factura FAC-00007 - devolucion de mercancia ',1,'2025-10-08 14:43:08'),(15,3,'salida',1,NULL,'FAC-00010','Venta - Factura FAC-00010',1,'2025-10-08 15:39:05'),(16,3,'entrada',1,NULL,'FAC-00010','Anulación de factura FAC-00010 - devolución, no era correcta la mercancía ',1,'2025-10-08 15:39:38');
 /*!40000 ALTER TABLE `movimientos_inventario` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -494,9 +498,9 @@ CREATE TABLE `ncf` (
   `id` int NOT NULL AUTO_INCREMENT,
   `tipo_ncf` enum('B01','B02','B14','B15','B16') COLLATE utf8mb4_unicode_ci NOT NULL,
   `descripcion_tipo` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `secuencia_desde` varchar(11) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `secuencia_hasta` varchar(11) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `secuencia_actual` varchar(11) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `secuencia_desde` varchar(19) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `secuencia_hasta` varchar(19) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `secuencia_actual` varchar(19) COLLATE utf8mb4_unicode_ci NOT NULL,
   `fecha_vencimiento` date NOT NULL,
   `activo` tinyint(1) DEFAULT '1',
   `agotado` tinyint(1) DEFAULT '0',
@@ -512,7 +516,7 @@ CREATE TABLE `ncf` (
 
 LOCK TABLES `ncf` WRITE;
 /*!40000 ALTER TABLE `ncf` DISABLE KEYS */;
-INSERT INTO `ncf` VALUES (1,'B01','Crédito Fiscal','B0100000001','B0100001000','B0100000001','2026-10-05',1,0,'2025-10-05 19:27:39','2025-10-05 19:27:39'),(2,'B02','Consumo','B0200000001','B0200005000','B0200000010','2026-10-05',1,0,'2025-10-05 19:27:39','2025-10-07 11:43:20'),(3,'B14','Regímenes Especiales','B1400000001','B1400000500','B1400000001','2026-10-05',1,0,'2025-10-05 19:27:39','2025-10-05 19:27:39');
+INSERT INTO `ncf` VALUES (1,'B01','Crédito Fiscal','B0100000001','B0100001000','B0100000001','2026-10-05',1,0,'2025-10-05 19:27:39','2025-10-05 19:27:39'),(2,'B02','Consumo','B0200000001','B0200005000','B0200000011','2026-10-05',1,0,'2025-10-05 19:27:39','2025-10-08 15:39:05'),(3,'B14','Regímenes Especiales','B1400000001','B1400000500','B1400000001','2026-10-05',1,0,'2025-10-05 19:27:39','2025-10-05 19:27:39');
 /*!40000 ALTER TABLE `ncf` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -656,6 +660,7 @@ CREATE TABLE `productos` (
   KEY `categoria_id` (`categoria_id`),
   KEY `idx_codigo` (`codigo`),
   KEY `idx_nombre` (`nombre`),
+  KEY `idx_activo_stock` (`activo`,`stock_actual`),
   CONSTRAINT `productos_ibfk_1` FOREIGN KEY (`categoria_id`) REFERENCES `categorias` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -666,7 +671,7 @@ CREATE TABLE `productos` (
 
 LOCK TABLES `productos` WRITE;
 /*!40000 ALTER TABLE `productos` DISABLE KEYS */;
-INSERT INTO `productos` VALUES (1,'1561616416','LLAVE 10','',2,'UND',10.00,50.00,35.00,1,18.00,7,5,100,10.00,1,'','2025-10-05 19:28:52','2025-10-06 17:10:10'),(2,'416464646','Ajustable','',2,'UND',50.00,120.00,105.00,1,18.00,34,5,100,50.00,1,'https://www.flaticon.es/icono-gratis/configuraciones_1085005?term=ajustable&page=1&position=7&origin=search&related_id=1085005','2025-10-05 19:29:29','2025-10-06 14:42:55'),(3,'46413141','LLAVE CRUZ','',2,'UND',50.00,200.00,175.00,1,18.00,11,5,100,25.00,1,'','2025-10-06 14:34:44','2025-10-07 11:43:20'),(4,'46465464','CABLE 12','',4,'MT',10.00,20.00,18.00,1,18.00,69,5,100,10.00,1,'','2025-10-06 14:57:21','2025-10-06 14:59:52');
+INSERT INTO `productos` VALUES (1,'1561616416','LLAVE 10','',2,'UND',10.00,50.00,35.00,1,18.00,7,5,100,10.00,1,'','2025-10-05 19:28:52','2025-10-06 17:10:10'),(2,'416464646','Ajustable','',2,'UND',50.00,120.00,105.00,1,18.00,34,5,100,50.00,1,'https://www.flaticon.es/icono-gratis/configuraciones_1085005?term=ajustable&page=1&position=7&origin=search&related_id=1085005','2025-10-05 19:29:29','2025-10-06 14:42:55'),(3,'46413141','LLAVE CRUZ','',2,'UND',50.00,200.00,175.00,1,18.00,12,5,100,25.00,1,'','2025-10-06 14:34:44','2025-10-08 15:39:38'),(4,'46465464','CABLE 12','',4,'MT',10.00,20.00,18.00,1,18.00,69,5,100,10.00,1,'','2025-10-06 14:57:21','2025-10-06 14:59:52');
 /*!40000 ALTER TABLE `productos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -928,7 +933,7 @@ CREATE TABLE `usuarios` (
 
 LOCK TABLES `usuarios` WRITE;
 /*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
-INSERT INTO `usuarios` VALUES (1,'Administrador Sistema','admin@erp.com','$2a$10$GTrNE/enlwMKmo.dkO7.pONh6gP7rWuisLkOlAXuyEGOPudiDLzCC',NULL,NULL,1,1,'2025-10-07 17:18:20','2025-10-05 19:27:38','2025-10-07 17:18:20');
+INSERT INTO `usuarios` VALUES (1,'Administrador Sistema','admin@erp.com','$2a$10$GTrNE/enlwMKmo.dkO7.pONh6gP7rWuisLkOlAXuyEGOPudiDLzCC',NULL,NULL,1,1,'2025-10-08 15:36:16','2025-10-05 19:27:38','2025-10-08 15:36:16');
 /*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -941,4 +946,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-10-07 18:49:43
+-- Dump completed on 2025-10-08 15:55:53

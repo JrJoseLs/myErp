@@ -8,14 +8,28 @@ dotenv.config();
  */
 export const connectDatabase = async () => {
 	try {
+		console.log('🚀 Intentando conectar a MySQL...');
+		console.log('🔹 HOST:', process.env.MYSQLHOST);
+		console.log('🔹 DB:', process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE);
+		console.log('🔹 USER:', process.env.MYSQLUSER);
+
 		await sequelize.authenticate();
 		console.log('✅ Conexión a MySQL establecida correctamente');
 		return true;
 	} catch (error) {
-		console.error('❌ Error al conectar a la base de datos:', error.message);
+		console.error('❌ Error al conectar a la base de datos:');
+		console.error('📄 Mensaje:', error.message);
+		console.error('📜 Stack:', error.stack);
+		console.error('⚙️ Variables actuales:', {
+			MYSQL_URL: process.env.MYSQL_URL,
+			MYSQLHOST: process.env.MYSQLHOST,
+			MYSQLUSER: process.env.MYSQLUSER,
+			MYSQL_DATABASE: process.env.MYSQL_DATABASE,
+		});
 		process.exit(1);
 	}
 };
+
 
 /**
  * Sincronizar modelos con la base de datos
