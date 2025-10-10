@@ -1,4 +1,4 @@
-// backend/src/controllers/reportController.js - VERSIÓN MEJORADA
+// backend/src/controllers/reportController.js - VERSIÓN COMPLETA MEJORADA
 
 import { 
   generateReport607,
@@ -14,11 +14,10 @@ import {
   generate608TXT 
 } from '../utils/txtGenerator.js';
 import {
-  export607ToCSV,
-  export606ToCSV,
-  export608ToCSV,
+  export607ToExcel,
+  export606ToExcel,
+  export608ToExcel,
 } from '../services/excelService.js';
-import fs from 'fs';
 
 /**
  * @desc    Generar Reporte 607 (Ventas)
@@ -49,7 +48,7 @@ export const getReport607 = async (req, res) => {
       { cantidad_registros: 0, monto_facturado: 0, itbis_facturado: 0 }
     );
 
-    // Si se solicita formato TXT, generarlo
+    // Formato TXT para DGII
     if (format === 'txt') {
       const txtContent = generate607TXT(
         report, 
@@ -58,9 +57,25 @@ export const getReport607 = async (req, res) => {
         parseInt(año)
       );
 
-      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="607_${año}${String(mes).padStart(2, '0')}.txt"`);
       return res.send(txtContent);
+    }
+
+    // Formato Excel
+    if (format === 'excel') {
+      const filePath = await export607ToExcel(report, parseInt(mes), parseInt(año));
+      
+      res.download(filePath, `607_${año}${String(mes).padStart(2, '0')}.xlsx`, (err) => {
+        if (err) {
+          console.error('Error al descargar archivo:', err);
+          res.status(500).json({
+            success: false,
+            message: 'Error al generar archivo Excel',
+          });
+        }
+      });
+      return;
     }
 
     // Respuesta JSON por defecto
@@ -108,7 +123,7 @@ export const getReport606 = async (req, res) => {
       { cantidad_registros: 0, monto_facturado: 0, itbis_facturado: 0 }
     );
 
-    // Si se solicita formato TXT
+    // Formato TXT
     if (format === 'txt') {
       const txtContent = generate606TXT(
         report, 
@@ -117,9 +132,25 @@ export const getReport606 = async (req, res) => {
         parseInt(año)
       );
 
-      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="606_${año}${String(mes).padStart(2, '0')}.txt"`);
       return res.send(txtContent);
+    }
+
+    // Formato Excel
+    if (format === 'excel') {
+      const filePath = await export606ToExcel(report, parseInt(mes), parseInt(año));
+      
+      res.download(filePath, `606_${año}${String(mes).padStart(2, '0')}.xlsx`, (err) => {
+        if (err) {
+          console.error('Error al descargar archivo:', err);
+          res.status(500).json({
+            success: false,
+            message: 'Error al generar archivo Excel',
+          });
+        }
+      });
+      return;
     }
 
     res.json({
@@ -156,7 +187,7 @@ export const getReport608 = async (req, res) => {
 
     const report = await generateReport608(parseInt(mes), parseInt(año));
 
-    // Si se solicita formato TXT
+    // Formato TXT
     if (format === 'txt') {
       const txtContent = generate608TXT(
         report, 
@@ -165,9 +196,24 @@ export const getReport608 = async (req, res) => {
         parseInt(año)
       );
 
-      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="608_${año}${String(mes).padStart(2, '0')}.txt"`);
       return res.send(txtContent);
+    }
+
+    // Formato Excel
+    if (format === 'excel') {
+      const filePath = await export608ToExcel(report, parseInt(mes), parseInt(año));
+      
+      res.download(filePath, `608_${año}${String(mes).padStart(2, '0')}.xlsx`, (err) => {
+        if (err) {
+          res.status(500).json({
+            success: false,
+            message: 'Error al generar archivo Excel',
+          });
+        }
+      });
+      return;
     }
 
     res.json({
@@ -286,7 +332,7 @@ export const saveReport608Data = async (req, res) => {
 };
 
 /**
- * ✅ NUEVO: Obtener resumen de reportes disponibles
+ * @desc    Obtener resumen de reportes disponibles
  * @route   GET /api/v1/reports/summary
  * @access  Private/Admin/Contabilidad
  */
@@ -302,7 +348,6 @@ export const getReportsSummary = async (req, res) => {
     }
 
     const { Report606, Report607, Report608 } = await import('../models/index.js');
-    const { Op } = await import('sequelize');
 
     // Obtener meses con reportes guardados
     const report607Summary = await Report607.findAll({
@@ -351,6 +396,43 @@ export const getReportsSummary = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al obtener resumen de reportes',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * ✅ NUEVO: Validar NCF de un proveedor con DGII
+ * @route   POST /api/v1/reports/validate-ncf
+ * @access  Private
+ */
+export const validateNCF = async (req, res) => {
+  try {
+    const { ncf, rnc_proveedor } = req.body;
+
+    if (!ncf || !rnc_proveedor) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debe proporcionar NCF y RNC del proveedor',
+      });
+    }
+
+    // Aquí podrías integrar con API de DGII cuando esté disponible
+    // Por ahora, validación local
+    const { validateNCF: validateNCFUtil } = await import('../utils/validators.js');
+    const validation = validateNCFUtil(ncf);
+
+    res.json({
+      success: validation.valid,
+      ncf,
+      rnc_proveedor,
+      ...validation,
+    });
+  } catch (error) {
+    console.error('Error al validar NCF:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al validar NCF',
       error: error.message,
     });
   }
