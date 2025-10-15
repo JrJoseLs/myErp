@@ -40,10 +40,13 @@ dotenv.config();
 const isProduction = process.env.NODE_ENV === 'production';
 let sequelize;
 
-if (process.env.MYSQL_URL) {
-  // Railway proporciona MYSQL_URL (formato: mysql://user:pass@host:port/db)
-  console.log('🔗 Conectando con MYSQL_URL de Railway');
-  sequelize = new Sequelize(process.env.MYSQL_URL, {
+// Railway puede usar MYSQL_URL o DATABASE_URL
+const connectionString = process.env.MYSQL_URL || process.env.DATABASE_URL;
+
+if (connectionString) {
+  // Railway proporciona MYSQL_URL o DATABASE_URL (formato: mysql://user:pass@host:port/db)
+  console.log('🔗 Conectando con connection string de Railway');
+  sequelize = new Sequelize(connectionString, {
     dialect: 'mysql',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     dialectOptions: isProduction ? {
