@@ -40,13 +40,61 @@ dotenv.config();
 const isProduction = process.env.NODE_ENV === 'production';
 let sequelize;
 
-// Railway puede usar MYSQL_URL o DATABASE_URL
+// Railway puede usar MYSQL_URL, DATABASE_URL o variables individuales
 const connectionString = process.env.MYSQL_URL || process.env.DATABASE_URL;
 
 if (connectionString) {
   // Railway proporciona MYSQL_URL o DATABASE_URL (formato: mysql://user:pass@host:port/db)
   console.log('🔗 Conectando con connection string de Railway');
   sequelize = new Sequelize(connectionString, {
+    dialect: 'mysql',
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    dialectOptions: isProduction ? {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    } : {},
+    pool: {
+      max: 10,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
+    timezone: '-04:00', // República Dominicana
+  });
+} else if (process.env.MYSQL_HOST || process.env.MYSQLHOST) {
+  // Usar variables individuales (Railway también las proporciona)
+  console.log('🔗 Conectando con variables individuales de Railway');
+  const dbHost = process.env.MYSQL_HOST || process.env.MYSQLHOST || process.env.DB_HOST;
+  const dbPort = process.env.MYSQL_PORT || process.env.MYSQLPORT || process.env.DB_PORT || 3306;
+  const dbName = process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || process.env.DB_NAME;
+  const dbUser = process.env.MYSQL_USER || process.env.MYSQLUSER || process.env.DB_USER;
+  const dbPass = process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD || process.env.DB_PASSWORD;
+
+  console.log('🔹 HOST:', dbHost);
+  console.log('🔹 PORT:', dbPort);
+  console.log('🔹 DB:', dbName);
+  console.log('🔹 USER:', dbUser);
+
+  sequelize = new Sequelize(dbName, dbUser, dbPass, {
+    host: dbHost,
+    port: dbPort,
+    dialect: 'mysql',
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    dialectOptions: isProduction ? {
+      ssl: {
+        require: false // Railway interno no requiere SSL
+      }
+    } : {},
+    pool: {
+      max: 10,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
+    timezone: '-04:00', // República Dominicana
+  });
     dialect: 'mysql',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     dialectOptions: isProduction ? {
