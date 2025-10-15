@@ -4,10 +4,6 @@
 -- ------------------------------------------------------
 -- Server version	8.0.42
 
--- SOLUCION ERROR 1046: Crea y selecciona la base de datos antes de cualquier instrucción DDL
-CREATE DATABASE IF NOT EXISTS `erp_crm_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `erp_crm_db`;
-
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
@@ -235,7 +231,7 @@ CREATE TABLE `cuentas_por_cobrar` (
   PRIMARY KEY (`id`),
   KEY `factura_id` (`factura_id`),
   KEY `cliente_id` (`cliente_id`),
-  CONSTRAINT `cuentas_por_cobrar_ibfk_1` FOREIGN KEY (`factura_id`) REFERENCES `facturas` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT `cuentas_por_cobrar_ibfk_1` FOREIGN KEY (`factura_id`) REFERENCES `facturas` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `cuentas_por_cobrar_ibfk_2` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -272,7 +268,7 @@ CREATE TABLE `cuentas_por_pagar` (
   PRIMARY KEY (`id`),
   KEY `compra_id` (`compra_id`),
   KEY `proveedor_id` (`proveedor_id`),
-  CONSTRAINT `cuentas_por_pagar_ibfk_1` FOREIGN KEY (`compra_id`) REFERENCES `compras` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT `cuentas_por_pagar_ibfk_1` FOREIGN KEY (`compra_id`) REFERENCES `compras` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `cuentas_por_pagar_ibfk_2` FOREIGN KEY (`proveedor_id`) REFERENCES `proveedores` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -307,7 +303,7 @@ CREATE TABLE `detalle_compras` (
   PRIMARY KEY (`id`),
   KEY `compra_id` (`compra_id`),
   KEY `producto_id` (`producto_id`),
-  CONSTRAINT `detalle_compras_ibfk_1` FOREIGN KEY (`compra_id`) REFERENCES `compras` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT `detalle_compras_ibfk_1` FOREIGN KEY (`compra_id`) REFERENCES `compras` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `detalle_compras_ibfk_2` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -343,7 +339,7 @@ CREATE TABLE `detalle_facturas` (
   PRIMARY KEY (`id`),
   KEY `factura_id` (`factura_id`),
   KEY `producto_id` (`producto_id`),
-  CONSTRAINT `detalle_facturas_ibfk_1` FOREIGN KEY (`factura_id`) REFERENCES `facturas` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT `detalle_facturas_ibfk_1` FOREIGN KEY (`factura_id`) REFERENCES `facturas` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `detalle_facturas_ibfk_2` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -469,7 +465,6 @@ CREATE TABLE `movimientos_inventario` (
   `usuario_id` int DEFAULT NULL,
   `fecha_movimiento` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_fecha_movimiento` (`fecha_movimiento`),
   KEY `usuario_id` (`usuario_id`),
   KEY `idx_producto_fecha` (`producto_id`,`fecha_movimiento`),
   CONSTRAINT `movimientos_inventario_ibfk_1` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`) ON UPDATE CASCADE,
@@ -498,9 +493,9 @@ CREATE TABLE `ncf` (
   `id` int NOT NULL AUTO_INCREMENT,
   `tipo_ncf` enum('B01','B02','B14','B15','B16') COLLATE utf8mb4_unicode_ci NOT NULL,
   `descripcion_tipo` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `secuencia_desde` varchar(19) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `secuencia_hasta` varchar(19) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `secuencia_actual` varchar(19) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `secuencia_desde` varchar(11) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `secuencia_hasta` varchar(11) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `secuencia_actual` varchar(11) COLLATE utf8mb4_unicode_ci NOT NULL,
   `fecha_vencimiento` date NOT NULL,
   `activo` tinyint(1) DEFAULT '1',
   `agotado` tinyint(1) DEFAULT '0',
