@@ -1,6 +1,6 @@
 // ============================================
 // backend/src/models/index.js
-// Configuración principal de Sequelize
+// Configuración principal de Sequelize - Compatible con Railway
 // ============================================
 
 import { Sequelize } from 'sequelize';
@@ -33,16 +33,25 @@ import Report608Model from './Report608.js';
 
 dotenv.config();
 
-// Configurar conexión a la base de datos
-const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 3306,
+// ============================================
+// CONFIGURACIÓN DE SEQUELIZE PARA RAILWAY
+// ============================================
+
+const isProduction = process.env.NODE_ENV === 'production';
+let sequelize;
+
+if (process.env.MYSQL_URL) {
+  // Railway proporciona MYSQL_URL (formato: mysql://user:pass@host:port/db)
+  console.log('🔗 Conectando con MYSQL_URL de Railway');
+  sequelize = new Sequelize(process.env.MYSQL_URL, {
     dialect: 'mysql',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    dialectOptions: isProduction ? {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    } : {},
     pool: {
       max: 10,
       min: 0,
@@ -50,10 +59,34 @@ const sequelize = new Sequelize(
       idle: 10000,
     },
     timezone: '-04:00', // República Dominicana
-  }
-);
+  });
+} else {
+  // Fallback para desarrollo local
+  console.log('🔗 Conectando con variables individuales (desarrollo local)');
+  sequelize = new Sequelize(
+    process.env.DB_NAME || process.env.MYSQLDATABASE || 'erp_crm_db',
+    process.env.DB_USER || process.env.MYSQLUSER || 'root',
+    process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
+    {
+      host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+      port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
+      dialect: 'mysql',
+      logging: process.env.NODE_ENV === 'development' ? console.log : false,
+      pool: {
+        max: 10,
+        min: 0,
+        acquire: 30000,
+        idle: 10000,
+      },
+      timezone: '-04:00', // República Dominicana
+    }
+  );
+}
 
-// Inicializar modelos
+// ============================================
+// INICIALIZAR MODELOS
+// ============================================
+
 const Role = RoleModel(sequelize);
 const User = UserModel(sequelize);
 const Employee = EmployeeModel(sequelize);
@@ -180,7 +213,10 @@ Invoice.hasOne(Report607, { foreignKey: 'factura_id', as: 'report607' });
 Report608.belongsTo(Invoice, { foreignKey: 'factura_id', as: 'invoice' });
 Invoice.hasOne(Report608, { foreignKey: 'factura_id', as: 'report608' });
 
-// Exportar todo
+// ============================================
+// EXPORTAR TODO
+// ============================================
+
 export {
   sequelize,
   Role,
