@@ -61,7 +61,7 @@ if (connectionString) {
       acquire: 30000,
       idle: 10000,
     },
-    timezone: '-04:00', // República Dominicana
+    timezone: '-04:00',
   });
 } else if (process.env.MYSQL_HOST || process.env.MYSQLHOST) {
   // Usar variables individuales (Railway también las proporciona)
@@ -84,7 +84,7 @@ if (connectionString) {
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     dialectOptions: isProduction ? {
       ssl: {
-        require: false // Railway interno no requiere SSL
+        require: false
       }
     } : {},
     pool: {
@@ -93,23 +93,7 @@ if (connectionString) {
       acquire: 30000,
       idle: 10000,
     },
-    timezone: '-04:00', // República Dominicana
-  });
-    dialect: 'mysql',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
-    dialectOptions: isProduction ? {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
-    } : {},
-    pool: {
-      max: 10,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-    timezone: '-04:00', // República Dominicana
+    timezone: '-04:00',
   });
 } else {
   // Fallback para desarrollo local
@@ -129,7 +113,7 @@ if (connectionString) {
         acquire: 30000,
         idle: 10000,
       },
-      timezone: '-04:00', // República Dominicana
+      timezone: '-04:00',
     }
   );
 }
