@@ -13,6 +13,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     environment: process.env.NODE_ENV || 'development',
+    port: PORT,
     database: process.env.MYSQLDATABASE || 'undefined',
     timestamp: new Date().toISOString(),
   });
@@ -20,15 +21,15 @@ app.get('/health', (req, res) => {
 
 const startServer = async () => {
   try {
-    // 1. Conectar a la Base de Datos
+    // 1️⃣ Conectar a la Base de Datos
     await connectDatabase();
 
-    // 2. Iniciar el servidor Express
-    app.listen(PORT, () => {
+    // 2️⃣ Iniciar el servidor Express (escuchando en 0.0.0.0 para Railway)
+    app.listen(PORT, '0.0.0.0', () => {
       console.log('\n======================================================');
-      console.log(`✅ Servidor Express en modo ${appConfig.nodeEnv}`);
+      console.log(`✅ Servidor Express en modo: ${appConfig.nodeEnv || 'development'}`);
       console.log(`📡 Escuchando en el puerto: ${PORT}`);
-      console.log(`🔗 Accede a la API en: ${appConfig.apiUrl || 'Railway URL detectada automáticamente'}`);
+      console.log(`🔗 Accede a la API en: ${appConfig.apiUrl || 'Railway URL (automática)'}`);
       console.log('======================================================\n');
     });
   } catch (error) {
@@ -37,5 +38,5 @@ const startServer = async () => {
   }
 };
 
-// Ejecutar la función de inicio
+// 🚀 Ejecutar la función de inicio
 startServer();
