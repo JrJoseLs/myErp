@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config(); // Asegura que las variables de entorno están cargadas
 
 // ✅ Usa el puerto asignado por Railway o el de appConfig
-const PORT = process.env.PORT || appConfig.port || 5000;
+const PORT = process.env.PORT || 5000;
 
 // ✅ Ruta de verificación (para Railway Health Check)
 app.get('/health', (req, res) => {
@@ -27,7 +27,7 @@ const startServer = () => { // Ya no es 'async', el 'await' de la DB se mueve
             console.log('\n======================================================');
             console.log(`✅ Servidor Express en modo: ${appConfig.nodeEnv || 'development'}`);
             console.log(`📡 Escuchando en el puerto: ${PORT}`);
-            console.log(`🔗 Accede a la API en: ${appConfig.apiUrl || 'Railway URL (automática)'}`);
+            console.log(`🔗 El puerto usado es: ${PORT}. Railway URL (automática)`);
             console.log('======================================================\n');
             
             // 2️⃣ Conectar a la Base de Datos DESPUÉS de que el servidor esté escuchando.
