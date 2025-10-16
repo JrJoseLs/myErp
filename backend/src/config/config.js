@@ -42,13 +42,8 @@ export const appConfig = {
   // República Dominicana
   country: {
     currency: 'DOP',
-    taxRate: 0.18, // ITBIS 18%
+    taxRate: 0.18, // ITBIS
     timezone: 'America/Santo_Domingo',
-  },
-
-  // Suscripción
-  subscription: {
-    checkInterval: process.env.SUBSCRIPTION_CHECK_INTERVAL || 86400000, // 24 horas
   },
 };
 

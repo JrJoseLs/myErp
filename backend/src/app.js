@@ -21,7 +21,10 @@ const app = express();
 
 // CORS
 app.use(cors({
-  origin: appConfig.nodeEnv === 'development' ? '*' : appConfig.apiUrl,
+  origin: [
+    appConfig.nodeEnv === 'development' ? '*' : appConfig.apiUrl,
+    process.env.VITE_FRONTEND_URL || ''  // ✅ URL del frontend Vercel
+  ].filter(Boolean),
   methods: ['GET','POST','PUT','PATCH','DELETE'],
   allowedHeaders: ['Content-Type','Authorization'],
 }));
