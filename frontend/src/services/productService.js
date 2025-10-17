@@ -1,13 +1,51 @@
 // frontend/src/services/productService.js
+
 import api from './api';
 
 const BASE_URL = '/products';
+const CATEGORY_URL = '/products/categories';
 
-/**
- * Obtener todos los productos con filtros
- */
+// ============================================
+// CATEGORIAS
+// ============================================
+
+export const getCategories = async () => {
+  try {
+    const { data } = await api.get(CATEGORY_URL);
+    return data;
+  } catch (error) {
+    console.error('Error al obtener categorías:', error);
+    throw error;
+  }
+};
+
+export const createCategory = async (categoryData) => {
+  try {
+    const { data } = await api.post(CATEGORY_URL, categoryData);
+    return data;
+  } catch (error) {
+    console.error('Error al crear categoría:', error);
+    throw error;
+  }
+};
+
+export const updateCategory = async (id, categoryData) => {
+  try {
+    const { data } = await api.put(`${CATEGORY_URL}/${id}`, categoryData);
+    return data;
+  } catch (error) {
+    console.error('Error al actualizar categoría:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// PRODUCTOS
+// ============================================
+
 export const getProducts = async (filters = {}) => {
   try {
+    // Limpiar filtros undefined
     const cleanFilters = Object.fromEntries(
       Object.entries(filters).filter(([_, v]) => v !== undefined && v !== '')
     );
@@ -20,9 +58,6 @@ export const getProducts = async (filters = {}) => {
   }
 };
 
-/**
- * Obtener un producto por ID
- */
 export const getProductById = async (id) => {
   try {
     const { data } = await api.get(`${BASE_URL}/${id}`);
@@ -33,24 +68,6 @@ export const getProductById = async (id) => {
   }
 };
 
-/**
- * Buscar productos por código o nombre
- */
-export const searchProducts = async (query) => {
-  try {
-    const { data } = await api.get(`${BASE_URL}/search`, {
-      params: { q: query }
-    });
-    return data;
-  } catch (error) {
-    console.error('Error al buscar productos:', error);
-    throw error;
-  }
-};
-
-/**
- * Crear un nuevo producto
- */
 export const createProduct = async (productData) => {
   try {
     const { data } = await api.post(BASE_URL, productData);
@@ -61,9 +78,6 @@ export const createProduct = async (productData) => {
   }
 };
 
-/**
- * Actualizar un producto
- */
 export const updateProduct = async (id, productData) => {
   try {
     const { data } = await api.put(`${BASE_URL}/${id}`, productData);
@@ -74,28 +88,12 @@ export const updateProduct = async (id, productData) => {
   }
 };
 
-/**
- * Eliminar un producto
- */
-export const deleteProduct = async (id) => {
+export const toggleProductStatus = async (id) => {
   try {
-    const { data } = await api.delete(`${BASE_URL}/${id}`);
+    const { data } = await api.patch(`${BASE_URL}/toggle-status/${id}`);
     return data;
   } catch (error) {
-    console.error('Error al eliminar producto:', error);
+    console.error('Error al cambiar estado del producto:', error);
     throw error;
   }
-};
-// ... otras funciones
-export const getCategories = async () => {
-  // lógica para obtener categorías
-};
-
-export default {
-  getProducts,
-  getProductById,
-  searchProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
 };
