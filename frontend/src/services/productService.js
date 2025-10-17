@@ -86,6 +86,10 @@ export const deleteProduct = async (id) => {
     throw error;
   }
 };
+// ... otras funciones
+export const getCategories = async () => {
+  // lógica para obtener categorías
+};
 
 export default {
   getProducts,
