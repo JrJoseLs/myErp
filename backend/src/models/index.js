@@ -29,7 +29,7 @@ import BudgetModel from './Budget.js';
 import SubscriptionModel from './Subscription.js';
 import Report606Model from './Report606.js';
 import Report607Model from './Report607.js';
-import Report608Model from './Report608.js';
+import Report608Model from './Report608.js'; // ✅ Importación de Report608
 
 dotenv.config();
 
@@ -142,9 +142,11 @@ const Payroll = PayrollModel(sequelize);
 const Asset = AssetModel(sequelize);
 const Budget = BudgetModel(sequelize);
 const Subscription = SubscriptionModel(sequelize);
+
+// Se inicializan los modelos de Reporte 606, 607 y 608
 const Report606 = Report606Model(sequelize);
 const Report607 = Report607Model(sequelize);
-const Report608 = Report608Model(sequelize);
+const Report608 = Report608Model(sequelize); // ✅ Report608 inicializado
 
 // ============================================
 // DEFINIR RELACIONES
@@ -245,7 +247,7 @@ Purchase.hasOne(Report606, { foreignKey: 'compra_id', as: 'report606' });
 Report607.belongsTo(Invoice, { foreignKey: 'factura_id', as: 'invoice' });
 Invoice.hasOne(Report607, { foreignKey: 'factura_id', as: 'report607' });
 
-Report608.belongsTo(Invoice, { foreignKey: 'factura_id', as: 'invoice' });
+Report608.belongsTo(Invoice, { foreignKey: 'factura_id', as: 'invoice' }); // ✅ Relación para Report608
 Invoice.hasOne(Report608, { foreignKey: 'factura_id', as: 'report608' });
 
 // ============================================
@@ -276,7 +278,7 @@ export {
   Subscription,
   Report606,
   Report607,
-  Report608,
+  Report608, // ✅ Exportación de Report608
 };
 
 export default sequelize;

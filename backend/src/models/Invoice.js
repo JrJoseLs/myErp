@@ -77,16 +77,22 @@ export default (sequelize) => {
       vendedor_id: {
         type: DataTypes.INTEGER,
       },
+      // ============================================
+      // CAMPOS DE ANULACIÓN (Ajustados para claridad)
+      // ============================================
       anulada: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
       motivo_anulacion: {
         type: DataTypes.TEXT,
+        allowNull: true, // Se agregó allowNull: true para ser explícito
       },
       fecha_anulacion: {
         type: DataTypes.DATE,
+        allowNull: true, // Se agregó allowNull: true para ser explícito
       },
+      // ============================================
     },
     {
       tableName: 'facturas',

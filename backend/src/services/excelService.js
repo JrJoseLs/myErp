@@ -1,221 +1,218 @@
-// backend/src/services/excelService.js - VERSIÓN COMPLETA CON XLSX
-
-import fs from 'fs';
+// backend/src/services/excelService.js
+import ExcelJS from 'exceljs';
 import path from 'path';
+import fs from 'fs';
 
-/**
- * ⚠️ NOTA IMPORTANTE:
- * Para exportación real a Excel (.xlsx), necesitas instalar:
- * npm install xlsx
- * 
- * Por ahora usaremos CSV que Excel puede abrir perfectamente
- */
+const EXPORTS_DIR = path.join(process.cwd(), 'exports', 'reports');
 
-/**
- * Convertir array de objetos a CSV
- * @param {Array} data - Datos a convertir
- * @param {Array} columns - Columnas a incluir {key, header}
- * @returns {string} - Contenido CSV
- */
-const arrayToCSV = (data, columns) => {
-  if (!data || data.length === 0) {
-    return '';
-  }
-
-  // Encabezados
-  const headers = columns.map(col => `"${col.header}"`).join(',');
-  
-  // Filas
-  const rows = data.map(row => {
-    return columns.map(col => {
-      let value = row[col.key];
-      
-      // Formatear valores
-      if (value === null || value === undefined) {
-        value = '';
-      } else if (typeof value === 'number') {
-        value = value.toFixed(2);
-      } else {
-        value = String(value).replace(/"/g, '""'); // Escapar comillas
-      }
-      
-      return `"${value}"`;
-    }).join(',');
-  }).join('\n');
-
-  return `${headers}\n${rows}`;
-};
-
-/**
- * Crear directorio si no existe
- */
-const ensureDirectoryExists = (dirPath) => {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-};
+// Crear directorio si no existe
+if (!fs.existsSync(EXPORTS_DIR)) {
+  fs.mkdirSync(EXPORTS_DIR, { recursive: true });
+}
 
 /**
  * Exportar Reporte 607 a Excel
- * @param {Array} data - Datos del reporte
- * @param {number} mes - Mes del reporte
- * @param {number} año - Año del reporte
- * @returns {Promise<string>} - Ruta del archivo generado
  */
-export const export607ToExcel = async (data, mes, año) => {
-  const columns = [
-    { key: 'rnc_cedula', header: 'RNC/Cédula' },
-    { key: 'tipo_identificacion', header: 'Tipo ID' },
-    { key: 'ncf', header: 'NCF' },
-    { key: 'tipo_ingreso', header: 'Tipo Ingreso' },
-    { key: 'fecha_comprobante', header: 'Fecha Comprobante' },
-    { key: 'monto_facturado', header: 'Monto Facturado' },
-    { key: 'itbis_facturado', header: 'ITBIS Facturado' },
-    { key: 'itbis_retenido', header: 'ITBIS Retenido' },
-    { key: 'isr_retenido', header: 'ISR Retenido' },
-    { key: 'impuesto_selectivo', header: 'Impuesto Selectivo' },
-    { key: 'otros_impuestos', header: 'Otros Impuestos' },
-    { key: 'propina_legal', header: 'Propina Legal' },
-  ];
+export const export607ToExcel = async (reportData, mes, año) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Reporte 607');
 
-  const csv = arrayToCSV(data, columns);
-  const dir = path.join(process.cwd(), 'exports', 'reports');
-  ensureDirectoryExists(dir);
+  // Título
+  worksheet.mergeCells('A1:I1');
+  worksheet.getCell('A1').value = `REPORTE 607 - ${mes}/${año}`;
+  worksheet.getCell('A1').font = { bold: true, size: 16 };
+  worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
-  const filename = `607_${año}${String(mes).padStart(2, '0')}.csv`;
-  const filepath = path.join(dir, filename);
-  
-  fs.writeFileSync(filepath, '\uFEFF' + csv, 'utf8'); // UTF-8 BOM para Excel
-  
-  return filepath;
+  // Headers
+  worksheet.addRow([
+    'RNC/Cédula',
+    'Tipo ID',
+    'NCF',
+    'Tipo Ingreso',
+    'Fecha Comprobante',
+    'Monto Facturado',
+    'ITBIS Facturado',
+    'ITBIS Retenido',
+    'Propina Legal',
+  ]);
+
+  const headerRow = worksheet.getRow(2);
+  headerRow.font = { bold: true };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF4472C4' },
+  };
+  headerRow.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+
+  // Datos
+  reportData.forEach(row => {
+    worksheet.addRow([
+      row.rnc_cedula,
+      row.tipo_identificacion === '1' ? 'RNC' : 'Cédula',
+      row.ncf,
+      row.tipo_ingreso,
+      new Date(row.fecha_comprobante).toLocaleDateString('es-DO'),
+      parseFloat(row.monto_facturado),
+      parseFloat(row.itbis_facturado),
+      parseFloat(row.itbis_retenido || 0),
+      parseFloat(row.propina_legal || 0),
+    ]);
+  });
+
+  // Formato de columnas
+  worksheet.getColumn(6).numFmt = '"RD$"#,##0.00';
+  worksheet.getColumn(7).numFmt = '"RD$"#,##0.00';
+  worksheet.getColumn(8).numFmt = '"RD$"#,##0.00';
+  worksheet.getColumn(9).numFmt = '"RD$"#,##0.00';
+
+  // Ajustar ancho de columnas
+  worksheet.columns.forEach(column => {
+    column.width = 15;
+  });
+
+  // Guardar archivo
+  const fileName = `607_${año}${String(mes).padStart(2, '0')}.xlsx`;
+  const filePath = path.join(EXPORTS_DIR, fileName);
+
+  await workbook.xlsx.writeFile(filePath);
+  return filePath;
 };
 
 /**
  * Exportar Reporte 606 a Excel
- * @param {Array} data - Datos del reporte
- * @param {number} mes - Mes del reporte
- * @param {number} año - Año del reporte
- * @returns {Promise<string>} - Ruta del archivo generado
  */
-export const export606ToExcel = async (data, mes, año) => {
-  const columns = [
-    { key: 'rnc_cedula', header: 'RNC/Cédula' },
-    { key: 'tipo_identificacion', header: 'Tipo ID' },
-    { key: 'tipo_bienes_servicios', header: 'Tipo Bienes/Servicios' },
-    { key: 'ncf', header: 'NCF' },
-    { key: 'fecha_comprobante', header: 'Fecha Comprobante' },
-    { key: 'fecha_pago', header: 'Fecha Pago' },
-    { key: 'monto_facturado', header: 'Monto Facturado' },
-    { key: 'itbis_facturado', header: 'ITBIS Facturado' },
-    { key: 'itbis_retenido', header: 'ITBIS Retenido' },
-    { key: 'itbis_sujeto_proporcionalidad', header: 'ITBIS Proporcionalidad' },
-    { key: 'itbis_llevado_costo', header: 'ITBIS Llevado a Costo' },
-    { key: 'itbis_compensacion', header: 'ITBIS Compensación' },
-  ];
+export const export606ToExcel = async (reportData, mes, año) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Reporte 606');
 
-  const csv = arrayToCSV(data, columns);
-  const dir = path.join(process.cwd(), 'exports', 'reports');
-  ensureDirectoryExists(dir);
+  // Título
+  worksheet.mergeCells('A1:J1');
+  worksheet.getCell('A1').value = `REPORTE 606 - COMPRAS - ${mes}/${año}`;
+  worksheet.getCell('A1').font = { bold: true, size: 16 };
+  worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
-  const filename = `606_${año}${String(mes).padStart(2, '0')}.csv`;
-  const filepath = path.join(dir, filename);
-  
-  fs.writeFileSync(filepath, '\uFEFF' + csv, 'utf8');
-  
-  return filepath;
+  // Headers
+  worksheet.addRow([
+    'RNC/Cédula',
+    'Tipo ID',
+    'Tipo Bien/Servicio',
+    'NCF',
+    'Fecha Comprobante',
+    'Fecha Pago',
+    'Monto Facturado',
+    'ITBIS Facturado',
+    'ITBIS Retenido',
+    'ITBIS Proporcionalidad',
+  ]);
+
+  const headerRow = worksheet.getRow(2);
+  headerRow.font = { bold: true };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFED7D31' },
+  };
+  headerRow.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+
+  // Datos
+  reportData.forEach(row => {
+    worksheet.addRow([
+      row.rnc_cedula,
+      row.tipo_identificacion === '1' ? 'RNC' : 'Cédula',
+      row.tipo_bienes_servicios,
+      row.ncf,
+      new Date(row.fecha_comprobante).toLocaleDateString('es-DO'),
+      new Date(row.fecha_pago).toLocaleDateString('es-DO'),
+      parseFloat(row.monto_facturado),
+      parseFloat(row.itbis_facturado),
+      parseFloat(row.itbis_retenido || 0),
+      parseFloat(row.itbis_sujeto_proporcionalidad || 0),
+    ]);
+  });
+
+  // Formato de columnas
+  worksheet.getColumn(7).numFmt = '"RD$"#,##0.00';
+  worksheet.getColumn(8).numFmt = '"RD$"#,##0.00';
+  worksheet.getColumn(9).numFmt = '"RD$"#,##0.00';
+  worksheet.getColumn(10).numFmt = '"RD$"#,##0.00';
+
+  // Ajustar ancho
+  worksheet.columns.forEach(column => {
+    column.width = 15;
+  });
+
+  // Guardar
+  const fileName = `606_${año}${String(mes).padStart(2, '0')}.xlsx`;
+  const filePath = path.join(EXPORTS_DIR, fileName);
+
+  await workbook.xlsx.writeFile(filePath);
+  return filePath;
 };
 
 /**
  * Exportar Reporte 608 a Excel
- * @param {Array} data - Datos del reporte
- * @param {number} mes - Mes del reporte
- * @param {number} año - Año del reporte
- * @returns {Promise<string>} - Ruta del archivo generado
  */
-export const export608ToExcel = async (data, mes, año) => {
-  const columns = [
-    { key: 'ncf', header: 'NCF' },
-    { key: 'fecha_comprobante', header: 'Fecha Comprobante' },
-    { key: 'tipo_anulacion', header: 'Tipo Anulación' },
-    { key: 'motivo', header: 'Motivo' },
-  ];
+export const export608ToExcel = async (reportData, mes, año) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Reporte 608');
 
-  const csv = arrayToCSV(data, columns);
-  const dir = path.join(process.cwd(), 'exports', 'reports');
-  ensureDirectoryExists(dir);
+  // Título
+  worksheet.mergeCells('A1:D1');
+  worksheet.getCell('A1').value = `REPORTE 608 - ANULACIONES - ${mes}/${año}`;
+  worksheet.getCell('A1').font = { bold: true, size: 16 };
+  worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
-  const filename = `608_${año}${String(mes).padStart(2, '0')}.csv`;
-  const filepath = path.join(dir, filename);
-  
-  fs.writeFileSync(filepath, '\uFEFF' + csv, 'utf8');
-  
-  return filepath;
-};
+  // Headers
+  worksheet.addRow([
+    'NCF',
+    'Fecha Comprobante',
+    'Tipo Anulación',
+    'Motivo',
+  ]);
 
-/**
- * Exportar lista de facturas a Excel
- * @param {Array} invoices - Facturas a exportar
- * @returns {Promise<string>} - Ruta del archivo generado
- */
-export const exportInvoicesToExcel = async (invoices) => {
-  const columns = [
-    { key: 'numero_factura', header: 'Número Factura' },
-    { key: 'ncf', header: 'NCF' },
-    { key: 'fecha_emision', header: 'Fecha Emisión' },
-    { key: 'cliente', header: 'Cliente' },
-    { key: 'subtotal', header: 'Subtotal' },
-    { key: 'itbis', header: 'ITBIS' },
-    { key: 'total', header: 'Total' },
-    { key: 'estado', header: 'Estado' },
-  ];
+  const headerRow = worksheet.getRow(2);
+  headerRow.font = { bold: true };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE74C3C' },
+  };
+  headerRow.font = { color: { argb: 'FFFFFFFF' }, bold: true };
 
-  const csv = arrayToCSV(invoices, columns);
-  const dir = path.join(process.cwd(), 'exports', 'invoices');
-  ensureDirectoryExists(dir);
+  // Datos
+  const tiposAnulacion = {
+    '01': 'Deterioro de factura',
+    '02': 'Errores de impresión',
+    '03': 'Impresión defectuosa',
+    '04': 'Corrección de la información',
+  };
 
-  const timestamp = new Date().getTime();
-  const filename = `facturas_${timestamp}.csv`;
-  const filepath = path.join(dir, filename);
-  
-  fs.writeFileSync(filepath, '\uFEFF' + csv, 'utf8');
-  
-  return filepath;
-};
+  reportData.forEach(row => {
+    worksheet.addRow([
+      row.ncf,
+      new Date(row.fecha_comprobante).toLocaleDateString('es-DO'),
+      tiposAnulacion[row.tipo_anulacion] || row.tipo_anulacion,
+      row.motivo || 'Sin especificar',
+    ]);
+  });
 
-/**
- * Exportar inventario a Excel
- * @param {Array} products - Productos a exportar
- * @returns {Promise<string>} - Ruta del archivo generado
- */
-export const exportInventoryToExcel = async (products) => {
-  const columns = [
-    { key: 'codigo', header: 'Código' },
-    { key: 'nombre', header: 'Nombre' },
-    { key: 'categoria', header: 'Categoría' },
-    { key: 'stock_actual', header: 'Stock Actual' },
-    { key: 'stock_minimo', header: 'Stock Mínimo' },
-    { key: 'precio_compra', header: 'Precio Compra' },
-    { key: 'precio_venta', header: 'Precio Venta' },
-    { key: 'valor_inventario', header: 'Valor Total' },
-  ];
+  // Ajustar ancho
+  worksheet.getColumn(1).width = 20;
+  worksheet.getColumn(2).width = 15;
+  worksheet.getColumn(3).width = 30;
+  worksheet.getColumn(4).width = 40;
 
-  const csv = arrayToCSV(products, columns);
-  const dir = path.join(process.cwd(), 'exports', 'inventory');
-  ensureDirectoryExists(dir);
+  // Guardar
+  const fileName = `608_${año}${String(mes).padStart(2, '0')}.xlsx`;
+  const filePath = path.join(EXPORTS_DIR, fileName);
 
-  const timestamp = new Date().getTime();
-  const filename = `inventario_${timestamp}.csv`;
-  const filepath = path.join(dir, filename);
-  
-  fs.writeFileSync(filepath, '\uFEFF' + csv, 'utf8');
-  
-  return filepath;
+  await workbook.xlsx.writeFile(filePath);
+  return filePath;
 };
 
 export default {
   export607ToExcel,
   export606ToExcel,
   export608ToExcel,
-  exportInvoicesToExcel,
-  exportInventoryToExcel,
 };
