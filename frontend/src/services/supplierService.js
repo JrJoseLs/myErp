@@ -1,52 +1,75 @@
 // frontend/src/services/supplierService.js
-
 import api from './api';
+
+const BASE_URL = '/suppliers';
 
 /**
  * Obtener todos los proveedores con filtros
  */
 export const getSuppliers = async (filters = {}) => {
-  const params = new URLSearchParams();
-  
-  if (filters.search) params.append('search', filters.search);
-  if (filters.activo !== undefined) params.append('activo', filters.activo);
-  if (filters.page) params.append('page', filters.page);
-  if (filters.limit) params.append('limit', filters.limit);
-
-  const response = await api.get(`/suppliers?${params.toString()}`);
-  return response.data;
+  try {
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, v]) => v !== undefined && v !== '')
+    );
+    
+    const { data } = await api.get(BASE_URL, { params: cleanFilters });
+    return data;
+  } catch (error) {
+    console.error('Error al obtener proveedores:', error);
+    throw error;
+  }
 };
 
 /**
  * Obtener un proveedor por ID
  */
 export const getSupplierById = async (id) => {
-  const response = await api.get(`/suppliers/${id}`);
-  return response.data;
+  try {
+    const { data } = await api.get(`${BASE_URL}/${id}`);
+    return data;
+  } catch (error) {
+    console.error('Error al obtener proveedor:', error);
+    throw error;
+  }
 };
 
 /**
  * Crear un nuevo proveedor
  */
 export const createSupplier = async (supplierData) => {
-  const response = await api.post('/suppliers', supplierData);
-  return response.data;
+  try {
+    const { data } = await api.post(BASE_URL, supplierData);
+    return data;
+  } catch (error) {
+    console.error('Error al crear proveedor:', error);
+    throw error;
+  }
 };
 
 /**
  * Actualizar un proveedor
  */
 export const updateSupplier = async (id, supplierData) => {
-  const response = await api.put(`/suppliers/${id}`, supplierData);
-  return response.data;
+  try {
+    const { data } = await api.put(`${BASE_URL}/${id}`, supplierData);
+    return data;
+  } catch (error) {
+    console.error('Error al actualizar proveedor:', error);
+    throw error;
+  }
 };
 
 /**
- * Cambiar estado de un proveedor
+ * Eliminar un proveedor
  */
-export const toggleSupplierStatus = async (id) => {
-  const response = await api.patch(`/suppliers/${id}/toggle-status`);
-  return response.data;
+export const deleteSupplier = async (id) => {
+  try {
+    const { data } = await api.delete(`${BASE_URL}/${id}`);
+    return data;
+  } catch (error) {
+    console.error('Error al eliminar proveedor:', error);
+    throw error;
+  }
 };
 
 export default {
@@ -54,5 +77,5 @@ export default {
   getSupplierById,
   createSupplier,
   updateSupplier,
-  toggleSupplierStatus,
+  deleteSupplier,
 };

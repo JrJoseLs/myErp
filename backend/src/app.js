@@ -1,10 +1,10 @@
-// backend/src/app.js - CONFIGURADO PARA TU PROYECTO
-
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet'; // Nuevo: Seguridad (HTTP Headers)
+import morgan from 'morgan'; // Nuevo: Logger de peticiones
 import { appConfig } from './config/config.js';
 
-// Importar rutas
+// Importar rutas (se mantienen las importaciones individuales)
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import productRoutes from './routes/productRoutes.js';
@@ -16,8 +16,8 @@ import reportRoutes from './routes/reportRoutes.js';
 import posRoutes from './routes/posRoutes.js';
 import dgiiRoutes from './routes/dgiiRoutes.js';
 
-// Importar middlewares
-import { notFound, errorHandler } from './middlewares/errorHandler.js';
+// Importar middlewares (solo errorHandler, se maneja 404 en línea)
+import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
 
@@ -25,89 +25,78 @@ const app = express();
 // CONFIGURACIÓN DE CORS
 // ============================================
 
-const allowedOrigins = () => {
-  if (appConfig.nodeEnv === 'development') {
-    return '*'; // En desarrollo permite todo
-  }
-  
-  // En producción, usar FRONTEND_URL
-  const frontendUrl = process.env.FRONTEND_URL;
-  if (frontendUrl) {
-    // Permite múltiples URLs separadas por coma
-    const origins = frontendUrl.split(',').map(url => url.trim());
-    console.log('🔒 CORS configurado para:', origins);
-    return origins;
-  }
-  
-  // Fallback: permite tu frontend de Vercel
-  const defaultOrigins = [
-    'https://my-erp-nine.vercel.app',
-    'https://my-erp-nine-git-main.vercel.app'
-  ];
-  console.log('⚠️  Usando orígenes por defecto:', defaultOrigins);
-  return defaultOrigins;
+/**
+ * Determina los orígenes permitidos para CORS basados en el entorno.
+ * Manteniendo la lógica de tu código original (FRONTEND_URL y Vercel).
+ */
+const getCorsOrigins = () => {
+    if (appConfig.nodeEnv === 'development') {
+        // En desarrollo, se permite todo. También puedes añadir 'http://localhost:5173'
+        return '*';
+    }
+
+    // En producción/staging, utiliza FRONTEND_URL si está definido
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (frontendUrl) {
+        // Permite múltiples URLs separadas por coma
+        const origins = frontendUrl.split(',').map(url => url.trim());
+        console.log('🔒 CORS configurado para:', origins);
+        return origins;
+    }
+
+    // Fallback: usar los orígenes por defecto de Vercel
+    const defaultOrigins = [
+        'https://my-erp-nine.vercel.app',
+        'https://my-erp-nine-git-main.vercel.app'
+    ];
+    console.log('⚠️ Usando orígenes por defecto:', defaultOrigins);
+    return defaultOrigins;
+};
+
+const corsOptions = {
+    origin: getCorsOrigins(),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 // ============================================
 // MIDDLEWARES GLOBALES
 // ============================================
 
-app.use(
-  cors({
-    origin: allowedOrigins(),
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Seguridad: Establece cabeceras HTTP seguras
+app.use(helmet());
 
-// Log de requests en desarrollo
+// Logger: Usa 'dev' en desarrollo y 'combined' en producción
 if (appConfig.nodeEnv === 'development') {
-  app.use((req, res, next) => {
-    console.log(`${req.method} ${req.path}`);
-    next();
-  });
+    app.use(morgan('dev'));
+} else {
+    app.use(morgan('combined'));
 }
 
+// Body parsers: Configuración para manejar JSON y URL-encoded con límite de 10MB
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 // ============================================
-// RUTAS
+// RUTAS PRINCIPALES
 // ============================================
 
+// Health check / Root endpoint (actualizado al estilo del nuevo snippet)
 app.get('/', (req, res) => {
-  res.json({
-    message: `API ERP/CRM en modo ${appConfig.nodeEnv}`,
-    version: '1.0.0',
-    status: 'online',
-    etapa: 'Etapa 6 - Reportes DGII + POS',
-    timestamp: new Date().toISOString(),
-    cors: appConfig.nodeEnv === 'development' ? 'permitido para todos' : 'configurado para Vercel',
-  });
+    res.json({
+        success: true,
+        message: '🚀 myERP API - República Dominicana',
+        version: '1.0.0',
+        status: 'online',
+        environment: appConfig.nodeEnv,
+        timestamp: new Date().toISOString(),
+    });
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    uptime: process.uptime(),
-    environment: appConfig.nodeEnv,
-    database: 'MySQL Railway',
-    frontend: 'Vercel'
-  });
-});
-
-// Endpoint de prueba de CORS
-app.get('/api/v1/test', (req, res) => {
-  res.json({
-    message: 'CORS está funcionando correctamente! 🎉',
-    timestamp: new Date().toISOString(),
-    origin: req.headers.origin || 'No origin header',
-  });
-});
-
-// Rutas de la API (v1)
+// Rutas de la API (v1) - Manteniendo las rutas individuales
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/products', productRoutes);
@@ -123,7 +112,15 @@ app.use('/api/v1/dgii', dgiiRoutes);
 // MANEJO DE ERRORES
 // ============================================
 
-app.use(notFound);
+// 404 - Ruta no encontrada (captura cualquier ruta no manejada)
+app.use('*', (req, res) => {
+    res.status(404).json({
+        success: false,
+        message: `Ruta no encontrada: ${req.method} ${req.originalUrl}`,
+    });
+});
+
+// Error handler global (último middleware)
 app.use(errorHandler);
 
 export default app;
