@@ -1,16 +1,18 @@
+// backend/src/config/config.js - CONFIGURADO PARA RAILWAY
+
 export const appConfig = {
   // Servidor
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   apiUrl: process.env.API_URL || 'http://localhost:5000',
 
-  // Base de datos
+  // Base de datos - USANDO LAS VARIABLES DE RAILWAY
   database: {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    name: process.env.DB_NAME || 'erp_crm_db',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'root',
+    host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+    port: process.env.MYSQLPORT || process.env.DB_PORT || 3306,
+    name: process.env.MYSQLDATABASE || process.env.DB_NAME || 'erp_crm_db',
+    user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
+    password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || 'root',
   },
 
   // JWT
@@ -45,6 +47,22 @@ export const appConfig = {
     taxRate: 0.18, // ITBIS
     timezone: 'America/Santo_Domingo',
   },
+
+  // Company Info (para reportes)
+  company: {
+    rnc: process.env.COMPANY_RNC || '000000000',
+    name: process.env.COMPANY_NAME || 'Mi Empresa SRL',
+    address: process.env.COMPANY_ADDRESS || 'Calle Principal #123',
+    phone: process.env.COMPANY_PHONE || '809-555-1234',
+  },
 };
+
+// Log de configuración en desarrollo
+if (appConfig.nodeEnv === 'development') {
+  console.log('📋 Configuración cargada:');
+  console.log('  - Ambiente:', appConfig.nodeEnv);
+  console.log('  - Puerto:', appConfig.port);
+  console.log('  - Base de datos:', `${appConfig.database.host}:${appConfig.database.port}/${appConfig.database.name}`);
+}
 
 export default appConfig;
