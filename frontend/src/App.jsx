@@ -16,6 +16,7 @@ import ProvidersPage from './pages/Providers';
 import ReportsPage from './pages/Reports';
 import SettingsPage from './pages/Settings';
 import POSPage from './pages/POS';
+import Suppliers from './pages/Suppliers';
 
 // Componente de ruta protegida
 const ProtectedRoute = ({ children }) => {
@@ -73,6 +74,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
 
           {/* Facturas */}
           <Route
