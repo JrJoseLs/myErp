@@ -1,11 +1,11 @@
-// frontend/src/pages/Suppliers.jsx
+// frontend/src/pages/Suppliers.jsx - VERSIÓN COMPLETA Y FUNCIONAL
+
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Download, TrendingUp, Building2 } from 'lucide-react';
+import { Plus, Search, Download, TrendingUp, Building2, AlertTriangle } from 'lucide-react';
 import SupplierList from '../components/suppliers/SupplierList';
 import SupplierForm from '../components/suppliers/SupplierForm';
 import Modal from '../components/common/Modal';
 import Button from '../components/common/Button';
-import Input from '../components/common/Input';
 import Select from '../components/common/Select';
 import Notification from '../components/common/Notification';
 import {
@@ -101,7 +101,6 @@ const SuppliersPage = () => {
   };
 
   const handleExport = () => {
-    // Exportar a CSV
     const csvContent = [
       ['Código', 'Nombre Comercial', 'RNC/Cédula', 'Teléfono', 'Email', 'Ciudad', 'Estado'],
       ...suppliers.map(s => [
@@ -162,6 +161,21 @@ const SuppliersPage = () => {
             <Plus className="w-5 h-5" />
             <span>Nuevo Proveedor</span>
           </Button>
+        </div>
+
+        {/* Alerta Informativa */}
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-6">
+          <div className="flex items-start">
+            <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+            <div className="text-sm text-blue-800">
+              <p className="font-semibold mb-1">📋 Importante para Reporte 606 (DGII)</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Todos los proveedores deben tener <strong>RNC o Cédula válida</strong></li>
+                <li>Al registrar compras, el <strong>NCF del proveedor es obligatorio</strong></li>
+                <li>Esto asegura que las compras aparezcan correctamente en el Reporte 606</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
