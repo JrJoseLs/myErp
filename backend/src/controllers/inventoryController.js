@@ -1,7 +1,6 @@
 // backend/src/controllers/inventoryController.js
 
-import { Product, InventoryMovement, Category, User } from '../models/index.js';
-import { sequelize } from '../models/index.js';
+import { Product, InventoryMovement, Category, User, Purchase, PurchaseDetail, Supplier, sequelize } from '../models/index.js';
 import { Op } from 'sequelize';
 
 // ============================================
@@ -135,11 +134,11 @@ export const getProductMovements = async (req, res) => {
 };
 
 // ============================================
-// CREAR MOVIMIENTO DE INVENTARIO (ENTRADA/SALIDA/AJUSTE)
+// 🆕 CREAR MOVIMIENTO DE INVENTARIO CON COMPRA (NUEVO)
 // ============================================
 
 /**
- * @desc    Registrar un movimiento de inventario
+ * @desc    Registrar movimiento de inventario con opción de crear compra
  * @route   POST /api/v1/inventory/movements
  * @access  Private/Inventory/Admin
  */
@@ -154,6 +153,11 @@ export const createInventoryMovement = async (req, res) => {
       costo_unitario,
       documento_referencia,
       motivo,
+      // 🆕 NUEVOS CAMPOS PARA COMPRA
+      es_compra,
+      proveedor_id,
+      ncf_proveedor,
+      fecha_compra,
     } = req.body;
 
     // Validar que el producto existe
@@ -162,6 +166,23 @@ export const createInventoryMovement = async (req, res) => {
     if (!product) {
       await transaction.rollback();
       return res.status(404).json({ message: 'Producto no encontrado' });
+    }
+
+    // 🆕 VALIDACIÓN: Si es compra, verificar campos requeridos
+    if (es_compra && tipo_movimiento === 'entrada') {
+      if (!proveedor_id || !ncf_proveedor) {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: 'Para registrar una compra debe proporcionar proveedor y NCF',
+        });
+      }
+
+      // Validar que el proveedor existe
+      const supplier = await Supplier.findByPk(proveedor_id, { transaction });
+      if (!supplier) {
+        await transaction.rollback();
+        return res.status(404).json({ message: 'Proveedor no encontrado' });
+      }
     }
 
     // Validar stock disponible para salidas
@@ -185,7 +206,6 @@ export const createInventoryMovement = async (req, res) => {
         nuevoStock -= parseInt(cantidad);
         break;
       case 'ajuste':
-        // En ajuste, la cantidad puede ser positiva o negativa
         nuevoStock = parseInt(cantidad);
         break;
       default:
@@ -206,7 +226,7 @@ export const createInventoryMovement = async (req, res) => {
     product.stock_actual = nuevoStock;
     await product.save({ transaction });
 
-    // Registrar el movimiento
+    // Registrar el movimiento de inventario
     const movement = await InventoryMovement.create(
       {
         producto_id,
@@ -220,6 +240,66 @@ export const createInventoryMovement = async (req, res) => {
       },
       { transaction }
     );
+
+    // 🆕 SI ES COMPRA, CREAR REGISTRO EN TABLA COMPRAS
+    let purchase = null;
+    if (es_compra && tipo_movimiento === 'entrada') {
+      // Generar número de compra
+      const lastPurchase = await Purchase.findOne({
+        order: [['id', 'DESC']],
+        attributes: ['numero_compra'],
+        transaction,
+      });
+
+      let numero_compra = 'COMP-00001';
+      if (lastPurchase && lastPurchase.numero_compra) {
+        const lastNumber = parseInt(lastPurchase.numero_compra.split('-')[1]);
+        numero_compra = `COMP-${String(lastNumber + 1).padStart(5, '0')}`;
+      }
+
+      // Calcular montos
+      const cantidad_int = parseInt(cantidad);
+      const precio_unit = parseFloat(costo_unitario) || product.precio_compra;
+      const itbis_porcentaje = 18; // Por defecto 18%
+      
+      const subtotal = cantidad_int * precio_unit;
+      const itbis = subtotal * (itbis_porcentaje / 100);
+      const total = subtotal + itbis;
+
+      // Crear compra
+      purchase = await Purchase.create(
+        {
+          numero_compra,
+          proveedor_id: parseInt(proveedor_id),
+          ncf_proveedor: ncf_proveedor,
+          fecha_compra: fecha_compra || new Date().toISOString().split('T')[0],
+          fecha_vencimiento: null,
+          tipo_compra: 'contado',
+          subtotal,
+          itbis,
+          total,
+          estado: 'recibida',
+          notas: `Compra desde movimiento de inventario: ${motivo}`,
+          usuario_id: req.user.id,
+        },
+        { transaction }
+      );
+
+      // Crear detalle de compra
+      await PurchaseDetail.create(
+        {
+          compra_id: purchase.id,
+          producto_id: parseInt(producto_id),
+          cantidad: cantidad_int,
+          precio_unitario: precio_unit,
+          itbis_porcentaje,
+          itbis_monto: itbis,
+          subtotal,
+          total,
+        },
+        { transaction }
+      );
+    }
 
     await transaction.commit();
 
@@ -239,11 +319,25 @@ export const createInventoryMovement = async (req, res) => {
       ],
     });
 
-    res.status(201).json({
+    const response = {
       success: true,
-      message: 'Movimiento de inventario registrado exitosamente',
+      message: es_compra && tipo_movimiento === 'entrada' 
+        ? '✓ Movimiento registrado y compra creada para Reporte 606'
+        : 'Movimiento de inventario registrado exitosamente',
       movement: movementWithDetails,
-    });
+    };
+
+    // Si se creó una compra, incluir info adicional
+    if (purchase) {
+      response.purchase = {
+        id: purchase.id,
+        numero_compra: purchase.numero_compra,
+        total: purchase.total,
+        ncf_proveedor: purchase.ncf_proveedor,
+      };
+    }
+
+    res.status(201).json(response);
   } catch (error) {
     await transaction.rollback();
     console.error('Error al crear movimiento de inventario:', error);
@@ -280,7 +374,7 @@ export const getLowStockProducts = async (req, res) => {
         },
       ],
       order: [
-        [sequelize.literal('stock_actual - stock_minimo'), 'ASC'], // Los más críticos primero
+        [sequelize.literal('stock_actual - stock_minimo'), 'ASC'],
       ],
     });
 

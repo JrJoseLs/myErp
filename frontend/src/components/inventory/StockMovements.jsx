@@ -1,4 +1,4 @@
-// frontend/src/components/inventory/StockMovements.jsx - SIN PROVEEDORES (TEMPORAL)
+// frontend/src/components/inventory/StockMovements.jsx
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -6,6 +6,7 @@ import {
   createInventoryMovement,
 } from '../../services/inventoryService';
 import { getProducts } from '../../services/productService';
+import { getSuppliers } from '../../services/supplierService';
 import { formatDateTime, formatNumber } from '../../utils/formatters';
 import {
   ArrowUpCircle,
@@ -13,6 +14,7 @@ import {
   RefreshCw,
   Plus,
   AlertCircle,
+  CheckCircle,
 } from 'lucide-react';
 import Button from '../common/Button';
 import Select from '../common/Select';
@@ -20,7 +22,7 @@ import Input from '../common/Input';
 import Modal from '../common/Modal';
 import Notification from '../common/Notification';
 
-const MovementForm = ({ products, onSave, onCancel }) => {
+const MovementForm = ({ products, suppliers, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     producto_id: '',
     tipo_movimiento: 'entrada',
@@ -28,14 +30,36 @@ const MovementForm = ({ products, onSave, onCancel }) => {
     costo_unitario: '',
     documento_referencia: '',
     motivo: '',
+    // 🆕 NUEVOS CAMPOS PARA COMPRA
+    es_compra: false,
+    proveedor_id: '',
+    ncf_proveedor: '',
+    fecha_compra: new Date().toISOString().split('T')[0],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    
+    if (type === 'checkbox') {
+      setFormData(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
+
+  // 🆕 Resetear campos de compra si se cambia el tipo de movimiento
+  useEffect(() => {
+    if (formData.tipo_movimiento !== 'entrada') {
+      setFormData(prev => ({
+        ...prev,
+        es_compra: false,
+        proveedor_id: '',
+        ncf_proveedor: '',
+      }));
+    }
+  }, [formData.tipo_movimiento]);
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -49,6 +73,10 @@ const MovementForm = ({ products, onSave, onCancel }) => {
       costo_unitario,
       documento_referencia,
       motivo,
+      es_compra,
+      proveedor_id,
+      ncf_proveedor,
+      fecha_compra,
     } = formData;
 
     // Validación de Datos
@@ -61,6 +89,25 @@ const MovementForm = ({ products, onSave, onCancel }) => {
       return;
     }
 
+    // 🆕 VALIDACIÓN: Si es compra, verificar campos requeridos
+    if (es_compra && tipo_movimiento === 'entrada') {
+      if (!proveedor_id) {
+        setError('Debe seleccionar un proveedor para registrar la compra.');
+        setLoading(false);
+        return;
+      }
+      if (!ncf_proveedor || ncf_proveedor.trim() === '') {
+        setError('Debe ingresar el NCF del proveedor para Reporte 606.');
+        setLoading(false);
+        return;
+      }
+      if (!parsedCosto) {
+        setError('Debe ingresar el costo unitario para registrar la compra.');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const dataToSend = {
         producto_id: parseInt(producto_id, 10),
@@ -69,9 +116,20 @@ const MovementForm = ({ products, onSave, onCancel }) => {
         costo_unitario: parsedCosto,
         documento_referencia: documento_referencia,
         motivo: motivo,
+        // 🆕 INCLUIR CAMPOS DE COMPRA
+        es_compra: es_compra && tipo_movimiento === 'entrada',
+        proveedor_id: es_compra && tipo_movimiento === 'entrada' ? parseInt(proveedor_id, 10) : undefined,
+        ncf_proveedor: es_compra && tipo_movimiento === 'entrada' ? ncf_proveedor : undefined,
+        fecha_compra: es_compra && tipo_movimiento === 'entrada' ? fecha_compra : undefined,
       };
 
-      await createInventoryMovement(dataToSend);
+      const response = await createInventoryMovement(dataToSend);
+      
+      // Mostrar mensaje de éxito con información adicional si es compra
+      if (response.purchase) {
+        console.log('✅ Compra creada:', response.purchase.numero_compra);
+      }
+      
       onSave();
     } catch (err) {
       console.error('Error al crear movimiento:', err);
@@ -84,6 +142,9 @@ const MovementForm = ({ products, onSave, onCancel }) => {
     }
   };
 
+  // 🆕 Mostrar u ocultar el checkbox según el tipo de movimiento
+  const mostrarCheckboxCompra = formData.tipo_movimiento === 'entrada';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
@@ -94,20 +155,6 @@ const MovementForm = ({ products, onSave, onCancel }) => {
           </div>
         </div>
       )}
-
-      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-        <div className="flex items-start">
-          <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
-          <div className="text-sm text-blue-800">
-            <p className="font-semibold mb-1">ℹ️ Información</p>
-            <p>
-              Los movimientos de inventario se registran automáticamente. 
-              Para registrar compras con proveedores y NCF (Reporte 606), 
-              espera a que se implemente el módulo de Compras.
-            </p>
-          </div>
-        </div>
-      </div>
 
       <Select
         label="Producto"
@@ -137,6 +184,76 @@ const MovementForm = ({ products, onSave, onCancel }) => {
         required
       />
 
+      {/* 🆕 CHECKBOX "ES UNA COMPRA" - Solo visible en ENTRADA */}
+      {mostrarCheckboxCompra && (
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+          <div className="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              name="es_compra"
+              checked={formData.es_compra}
+              onChange={handleChange}
+              className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+            />
+            <div className="flex-1">
+              <label className="text-sm font-semibold text-blue-900 cursor-pointer">
+                ¿Es una compra a proveedor?
+              </label>
+              <p className="text-xs text-blue-700 mt-1">
+                Marque esta opción si desea que esta entrada aparezca en el <strong>Reporte 606 (DGII)</strong>. 
+                Deberá proporcionar el proveedor y su NCF.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 CAMPOS DE COMPRA - Solo visible si checkbox está marcado */}
+      {formData.es_compra && mostrarCheckboxCompra && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <h3 className="text-sm font-semibold text-green-900">
+              Información de Compra (Reporte 606)
+            </h3>
+          </div>
+
+          <Select
+            label="Proveedor"
+            name="proveedor_id"
+            value={formData.proveedor_id}
+            onChange={handleChange}
+            options={[
+              { value: '', label: 'Seleccione un proveedor' },
+              ...suppliers.map(s => ({
+                value: String(s.id),
+                label: `${s.codigo_proveedor} - ${s.nombre_comercial} (${s.numero_identificacion})`,
+              })),
+            ]}
+            required
+          />
+
+          <Input
+            label="NCF del Proveedor"
+            name="ncf_proveedor"
+            value={formData.ncf_proveedor}
+            onChange={handleChange}
+            placeholder="B0100000001"
+            maxLength={19}
+            required
+          />
+
+          <Input
+            label="Fecha de Compra"
+            name="fecha_compra"
+            type="date"
+            value={formData.fecha_compra}
+            onChange={handleChange}
+            required
+          />
+        </div>
+      )}
+
       <Input
         label="Cantidad"
         name="cantidad"
@@ -148,7 +265,7 @@ const MovementForm = ({ products, onSave, onCancel }) => {
       />
 
       <Input
-        label="Costo Unitario (Opcional)"
+        label={formData.es_compra ? 'Costo Unitario (Requerido para compra)' : 'Costo Unitario (Opcional)'}
         name="costo_unitario"
         type="number"
         step="0.01"
@@ -156,6 +273,7 @@ const MovementForm = ({ products, onSave, onCancel }) => {
         value={formData.costo_unitario}
         onChange={handleChange}
         placeholder="Para actualizar el costo promedio"
+        required={formData.es_compra}
       />
 
       <Input
@@ -196,6 +314,7 @@ const MovementForm = ({ products, onSave, onCancel }) => {
 const StockMovements = () => {
   const [movements, setMovements] = useState([]);
   const [products, setProducts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -214,21 +333,23 @@ const StockMovements = () => {
     setError(null);
 
     try {
-      // ✅ Solo cargar movimientos y productos (SIN proveedores por ahora)
-      const [movementsData, productsData] = await Promise.all([
+      // 🆕 Cargar movimientos, productos Y proveedores
+      const [movementsData, productsData, suppliersData] = await Promise.all([
         getInventoryMovements({
           producto_id: productFilter || undefined,
           tipo_movimiento: typeFilter || undefined,
           limit: 50,
         }),
         getProducts({ activo: true }),
+        getSuppliers({ activo: true }),
       ]);
 
       setMovements(movementsData?.data || []);
       setProducts(productsData?.products || []);
+      setSuppliers(suppliersData?.suppliers || []);
     } catch (err) {
       console.error('Error al cargar datos:', err);
-      setError('Error al cargar movimientos o productos. Verifica que el backend esté corriendo.');
+      setError('Error al cargar datos. Verifica la conexión con el backend.');
     } finally {
       setLoading(false);
     }
@@ -401,6 +522,7 @@ const StockMovements = () => {
         >
           <MovementForm
             products={products}
+            suppliers={suppliers}
             onSave={handleMovementSaved}
             onCancel={() => setShowModal(false)}
           />

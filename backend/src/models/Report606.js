@@ -1,31 +1,70 @@
-// backend/src/models/Report608.js
+// ============================================
+// ARCHIVO 1: backend/src/models/Report606.js
+// ============================================
 import { DataTypes } from 'sequelize';
 
 export default (sequelize) => {
   return sequelize.define(
-    'Report608',
+    'Report606',
     {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
-      factura_id: {
+      compra_id: {
         type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      rnc_cedula: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+      },
+      tipo_identificacion: {
+        type: DataTypes.ENUM('1', '2', '3'),
+        allowNull: false,
+      },
+      tipo_bienes_servicios: {
+        type: DataTypes.STRING(2),
         allowNull: false,
       },
       ncf: {
         type: DataTypes.STRING(19),
         allowNull: false,
       },
+      ncf_modificado: {
+        type: DataTypes.STRING(19),
+      },
       fecha_comprobante: {
         type: DataTypes.DATEONLY,
         allowNull: false,
       },
-      tipo_anulacion: {
-        type: DataTypes.ENUM('01', '02', '03', '04'),
+      fecha_pago: {
+        type: DataTypes.DATEONLY,
+      },
+      monto_facturado: {
+        type: DataTypes.DECIMAL(12, 2),
         allowNull: false,
-        comment: '01=Deterioro, 02=Error impresión, 03=Defectuosa, 04=Corrección',
+      },
+      itbis_facturado: {
+        type: DataTypes.DECIMAL(12, 2),
+        allowNull: false,
+      },
+      itbis_retenido: {
+        type: DataTypes.DECIMAL(12, 2),
+        defaultValue: 0,
+      },
+      itbis_sujeto_proporcionalidad: {
+        type: DataTypes.DECIMAL(12, 2),
+        defaultValue: 0,
+      },
+      itbis_llevado_costo: {
+        type: DataTypes.DECIMAL(12, 2),
+        defaultValue: 0,
+      },
+      itbis_compensacion: {
+        type: DataTypes.DECIMAL(12, 2),
+        defaultValue: 0,
       },
       mes_reporte: {
         type: DataTypes.INTEGER,
@@ -44,7 +83,7 @@ export default (sequelize) => {
       },
     },
     {
-      tableName: 'reporte_608',
+      tableName: 'reporte_606',
       timestamps: true,
       createdAt: 'created_at',
       updatedAt: false,

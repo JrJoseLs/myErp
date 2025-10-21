@@ -1,10 +1,11 @@
 // frontend/src/services/supplierService.js
+
 import api from './api';
 
 const BASE_URL = '/suppliers';
 
 /**
- * Obtener todos los proveedores con filtros
+ * Obtener todos los proveedores
  */
 export const getSuppliers = async (filters = {}) => {
   try {
@@ -60,7 +61,7 @@ export const updateSupplier = async (id, supplierData) => {
 };
 
 /**
- * Eliminar un proveedor
+ * Eliminar (desactivar) un proveedor
  */
 export const deleteSupplier = async (id) => {
   try {

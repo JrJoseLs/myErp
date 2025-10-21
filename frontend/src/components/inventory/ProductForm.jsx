@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { createProduct, updateProduct } from '../../services/productService';
+import { createInventoryMovement } from '../../services/inventoryService';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
 import Notification from '../common/Notification';
+import { AlertCircle } from 'lucide-react';
 
 const ProductForm = ({ product, categories, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -28,6 +30,10 @@ const ProductForm = ({ product, categories, onSave, onCancel }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // 🆕 Estado para controlar si el stock cambió
+  const [stockOriginal, setStockOriginal] = useState(0);
+  const [stockCambio, setStockCambio] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -48,6 +54,9 @@ const ProductForm = ({ product, categories, onSave, onCancel }) => {
         imagen_url: product.imagen_url || '',
         activo: product.activo !== undefined ? product.activo : true,
       });
+      
+      // 🆕 Guardar stock original para detectar cambios
+      setStockOriginal(product.stock_actual || 0);
     }
   }, [product]);
 
@@ -65,6 +74,12 @@ const ProductForm = ({ product, categories, onSave, onCancel }) => {
         ...prev,
         [name]: type === 'checkbox' ? checked : value,
       }));
+      
+      // 🆕 Detectar si cambió el stock
+      if (name === 'stock_actual' && product) {
+        const nuevoStock = parseInt(value) || 0;
+        setStockCambio(nuevoStock !== stockOriginal);
+      }
     }
   };
 
@@ -97,9 +112,39 @@ const ProductForm = ({ product, categories, onSave, onCancel }) => {
       };
 
       if (product) {
+        // ACTUALIZAR PRODUCTO
         await updateProduct(product.id, dataToSend);
+        
+        // 🆕 Si el stock cambió, crear un movimiento de ajuste
+        if (stockCambio) {
+          const nuevoStock = parseInt(formData.stock_actual) || 0;
+          
+          await createInventoryMovement({
+            producto_id: product.id,
+            tipo_movimiento: 'ajuste',
+            cantidad: nuevoStock,
+            motivo: `Ajuste manual desde edición de producto. Stock anterior: ${stockOriginal}, Stock nuevo: ${nuevoStock}`,
+            documento_referencia: 'AJUSTE-MANUAL',
+          });
+          
+          console.log('✅ Movimiento de ajuste creado automáticamente');
+        }
       } else {
-        await createProduct(dataToSend);
+        // CREAR PRODUCTO NUEVO
+        const response = await createProduct(dataToSend);
+        
+        // 🆕 Si tiene stock inicial, crear movimiento de entrada
+        if (dataToSend.stock_actual > 0) {
+          await createInventoryMovement({
+            producto_id: response.product.id,
+            tipo_movimiento: 'entrada',
+            cantidad: dataToSend.stock_actual,
+            motivo: 'Inventario inicial al crear producto',
+            documento_referencia: 'INV-INICIAL',
+          });
+          
+          console.log('✅ Movimiento de inventario inicial creado');
+        }
       }
 
       onSave();
@@ -248,6 +293,25 @@ const ProductForm = ({ product, categories, onSave, onCancel }) => {
 
       <div className="border-t pt-4">
         <h3 className="text-sm font-medium text-gray-900 mb-3">Control de Inventario</h3>
+        
+        {/* 🆕 ALERTA si el stock va a cambiar en edición */}
+        {product && stockCambio && (
+          <div className="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+              <div className="text-sm text-yellow-800">
+                <p className="font-semibold mb-1">⚠️ Cambio de Stock Detectado</p>
+                <p>
+                  Stock actual: <strong>{stockOriginal}</strong> → Nuevo: <strong>{formData.stock_actual}</strong>
+                </p>
+                <p className="mt-1">
+                  Se creará automáticamente un <strong>movimiento de ajuste</strong> para mantener trazabilidad.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="grid grid-cols-3 gap-4">
           <Input
             label="Stock Actual"
@@ -255,8 +319,8 @@ const ProductForm = ({ product, categories, onSave, onCancel }) => {
             type="number"
             value={formData.stock_actual}
             onChange={handleChange}
-            disabled={!!product}
-            placeholder={product ? 'Use movimientos' : '0'}
+            disabled={false}  // 🆕 AHORA ESTÁ HABILITADO
+            placeholder="0"
           />
           <Input
             label="Stock Mínimo"
@@ -273,11 +337,13 @@ const ProductForm = ({ product, categories, onSave, onCancel }) => {
             onChange={handleChange}
           />
         </div>
-        {product && (
-          <p className="text-xs text-gray-500 mt-2">
-            * El stock actual solo se puede modificar mediante movimientos de inventario
-          </p>
-        )}
+        
+        {/* 🆕 NOTA INFORMATIVA */}
+        <p className="text-xs text-gray-500 mt-2">
+          {product 
+            ? '💡 Al cambiar el stock manualmente, se creará automáticamente un movimiento de ajuste para trazabilidad.'
+            : '💡 El stock inicial se registrará como un movimiento de entrada.'}
+        </p>
       </div>
 
       {product && (
