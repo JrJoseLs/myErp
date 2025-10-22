@@ -13,6 +13,7 @@
     "seed:consumidor": "node src/scripts/seedConsumidorFinal.js",
     "test:reports": "node src/scripts/testReports.js",
     "test:pos": "node src/scripts/testPOS.js",
+    "test:Dash": "node src/scripts/testDashboard.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

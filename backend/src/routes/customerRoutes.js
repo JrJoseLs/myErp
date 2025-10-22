@@ -8,10 +8,10 @@ import {
   updateCustomer,
   toggleCustomerStatus,
   generateCustomerCode,
-  getConsumidorFinal, // ✅ NUEVO
+  getConsumidorFinal, 
 } from '../controllers/customerController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { restrictTo } from '../middlewares/roleMiddleware.js';
+import restrictTo from '../middlewares/roleMiddleware.js'; // ✅ CORRECCIÓN APLICADA
 
 const router = express.Router();
 
@@ -19,7 +19,7 @@ const allowedRoles = restrictTo('Administrador', 'Vendedor', 'Contabilidad');
 
 // ✅ IMPORTANTE: Rutas específicas ANTES de rutas con parámetros
 router.get('/generate-code', protect, allowedRoles, generateCustomerCode);
-router.get('/consumidor-final', protect, allowedRoles, getConsumidorFinal); // ✅ NUEVA RUTA
+router.get('/consumidor-final', protect, allowedRoles, getConsumidorFinal); 
 
 // Rutas generales
 router.get('/', protect, allowedRoles, getCustomers);

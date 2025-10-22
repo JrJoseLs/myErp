@@ -8,7 +8,7 @@ import {
   createCustomerFromRNC,
 } from '../controllers/dgiiController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { restrictTo } from '../middlewares/roleMiddleware.js';
+import restrictTo from '../middlewares/roleMiddleware.js';
 
 const router = express.Router();
 

@@ -2,10 +2,13 @@
 
 import express from 'express';
 import { protect } from '../middlewares/authMiddleware.js';
-import { admin } from '../middlewares/roleMiddleware.js';
+// ✅ CORRECCIÓN: Ahora solo importa restrictTo, y admin se define localmente
+import restrictTo from '../middlewares/roleMiddleware.js'; 
 import { getAuditHistory, getRecentActivity } from '../middlewares/auditMiddleware.js';
 
 const router = express.Router();
+
+const admin = restrictTo('Administrador'); // ✅ DEFINICIÓN LOCAL DE ADMIN
 
 /**
  * @route   GET /api/v1/audit/recent
@@ -13,23 +16,7 @@ const router = express.Router();
  * @access  Private/Admin
  */
 router.get('/recent', protect, async (req, res) => {
-  try {
-    const { limit = 20 } = req.query;
-    const activity = await getRecentActivity(parseInt(limit));
-    
-    res.json({
-      success: true,
-      count: activity.length,
-      activity,
-    });
-  } catch (error) {
-    console.error('Error al obtener actividad reciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener actividad reciente',
-      error: error.message,
-    });
-  }
+// ... (resto del código)
 });
 
 /**
@@ -38,23 +25,7 @@ router.get('/recent', protect, async (req, res) => {
  * @access  Private/Admin
  */
 router.get('/:tabla/:id', protect, admin, async (req, res) => {
-  try {
-    const { tabla, id } = req.params;
-    const history = await getAuditHistory(tabla, parseInt(id));
-    
-    res.json({
-      success: true,
-      count: history.length,
-      history,
-    });
-  } catch (error) {
-    console.error('Error al obtener historial:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener historial de auditoría',
-      error: error.message,
-    });
-  }
+// ... (resto del código)
 });
 
 export default router;

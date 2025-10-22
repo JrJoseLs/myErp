@@ -1,5 +1,9 @@
-// Middleware para restringir el acceso a roles específicos
-export const restrictTo = (...roleNames) => {
+// backend/src/middlewares/roleMiddleware.js
+
+/**
+ * Middleware para restringir el acceso a roles específicos
+ */
+const restrictTo = (...roleNames) => {
   return (req, res, next) => {
     // 1. Obtener el nombre del rol del usuario autenticado (adjuntado por authMiddleware)
     const userRole = req.user && req.user.role && req.user.role.nombre;
@@ -22,5 +26,28 @@ export const restrictTo = (...roleNames) => {
   };
 };
 
-// Middleware específico para administradores
-export const admin = restrictTo('Administrador');
+/**
+ * Middleware específico para administradores
+ */
+const admin = restrictTo('Administrador');
+
+/**
+ * Middleware que permite múltiples roles
+ */
+const allowRoles = (...roleNames) => {
+  return (req, res, next) => {
+    const userRole = req.user && req.user.role && req.user.role.nombre;
+    
+    if (!userRole || !roleNames.includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Acceso denegado. Rol insuficiente.',
+      });
+    }
+    
+    next();
+  };
+};
+
+// ✅ EXPORT DEFAULT
+export default restrictTo;

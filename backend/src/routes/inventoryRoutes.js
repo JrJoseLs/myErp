@@ -9,7 +9,7 @@ import {
   getInventoryValuation,
 } from '../controllers/inventoryController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { restrictTo } from '../middlewares/roleMiddleware.js';
+import restrictTo from '../middlewares/roleMiddleware.js'; // ✅ CORREGIDO
 import { validateInventoryMovement, validateId } from '../middlewares/validationMiddleware.js';
 
 const router = express.Router();

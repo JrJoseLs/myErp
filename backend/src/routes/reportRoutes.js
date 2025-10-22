@@ -10,7 +10,7 @@ import {
   saveReport608Data,
 } from '../controllers/reportController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { restrictTo } from '../middlewares/roleMiddleware.js';
+import restrictTo from '../middlewares/roleMiddleware.js'; // ✅ CORRECCIÓN APLICADA
 
 const router = express.Router();
 

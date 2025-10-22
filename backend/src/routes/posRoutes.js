@@ -9,7 +9,7 @@ import {
   closeRegister,
 } from '../controllers/posController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { restrictTo } from '../middlewares/roleMiddleware.js';
+import restrictTo from '../middlewares/roleMiddleware.js'; // ✅ CORRECCIÓN APLICADA
 
 const router = express.Router();
 

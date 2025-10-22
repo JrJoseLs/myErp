@@ -10,22 +10,19 @@ import userRoutes from './routes/userRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
-import supplierRoutes from './routes/supplierRoutes.js'; // 🆕 NUEVO
-import purchaseRoutes from './routes/purchaseRoutes.js'; // 🆕 NUEVO
+import supplierRoutes from './routes/supplierRoutes.js';
+import purchaseRoutes from './routes/purchaseRoutes.js';
 import ncfRoutes from './routes/ncfRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import posRoutes from './routes/posRoutes.js';
 import dgiiRoutes from './routes/dgiiRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 // Importar middlewares
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
-
-// ============================================
-// CONFIGURACIÓN DE CORS
-// ============================================
 
 const getCorsOrigins = () => {
     if (appConfig.nodeEnv === 'development') {
@@ -54,10 +51,6 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// ============================================
-// MIDDLEWARES GLOBALES
-// ============================================
-
 app.use(cors(corsOptions));
 app.use(helmet());
 
@@ -69,10 +62,6 @@ if (appConfig.nodeEnv === 'development') {
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// ============================================
-// RUTAS PRINCIPALES
-// ============================================
 
 app.get('/', (req, res) => {
     res.json({
@@ -91,17 +80,14 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/inventory', inventoryRoutes);
 app.use('/api/v1/customers', customerRoutes);
-app.use('/api/v1/suppliers', supplierRoutes); // 🆕 NUEVO
-app.use('/api/v1/purchases', purchaseRoutes); // 🆕 NUEVO
+app.use('/api/v1/suppliers', supplierRoutes);
+app.use('/api/v1/purchases', purchaseRoutes);
 app.use('/api/v1/ncf', ncfRoutes);
 app.use('/api/v1/invoices', invoiceRoutes);
 app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/pos', posRoutes);
 app.use('/api/v1/dgii', dgiiRoutes);
-
-// ============================================
-// MANEJO DE ERRORES
-// ============================================
+app.use('/api/v1/dashboard', dashboardRoutes);
 
 // 404 - Ruta no encontrada
 app.use('*', (req, res) => {

@@ -9,7 +9,7 @@ import {
   getInvoiceStats,
 } from '../controllers/invoiceController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { restrictTo } from '../middlewares/roleMiddleware.js';
+import restrictTo from '../middlewares/roleMiddleware.js';
 
 const router = express.Router();
 

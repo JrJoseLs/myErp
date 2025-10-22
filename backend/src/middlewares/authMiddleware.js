@@ -8,7 +8,7 @@ import { appConfig } from '../config/config.js';
  * Middleware de protección de rutas con JWT
  * Verifica el token y adjunta el usuario completo (con rol) a req.user
  */
-export const protect = async (req, res, next) => {
+const protect = async (req, res, next) => {
   let token;
 
   // 1. Verificar si existe el token en los headers (Bearer Token)
@@ -79,7 +79,8 @@ export const protect = async (req, res, next) => {
       success: false,
       message: 'No autorizado, no se proporcionó token de acceso',
     });
-
-    
   }
 };
+
+// EXPORT NOMBRADO
+export { protect };

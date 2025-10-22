@@ -1,5 +1,3 @@
-// backend/src/routes/userRoutes.js
-
 import express from 'express';
 import {
   getUsers,
@@ -9,7 +7,8 @@ import {
   toggleUserStatus,
 } from '../controllers/userController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { admin } from '../middlewares/roleMiddleware.js';
+// CORRECCIÓN: Importación por defecto
+import restrictTo from '../middlewares/roleMiddleware.js'; 
 import {
   validateUserCreate,
   validateUserUpdate,
@@ -17,6 +16,9 @@ import {
 } from '../middlewares/validationMiddleware.js';
 
 const router = express.Router();
+
+// Crear middleware para admin
+const admin = restrictTo('Administrador');
 
 // Todas las rutas requieren autenticación y rol de Administrador
 

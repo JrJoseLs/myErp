@@ -12,7 +12,7 @@ import {
   toggleProductStatus,
 } from '../controllers/productController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { restrictTo } from '../middlewares/roleMiddleware.js';
+import restrictTo from '../middlewares/roleMiddleware.js'; // ✅ CORRECCIÓN APLICADA
 import {
   validateCategory,
   validateProductCreate,

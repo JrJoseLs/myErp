@@ -14,6 +14,7 @@ import CustomerModel from './Customer.js';
 import SupplierModel from './Supplier.js';
 import CategoryModel from './Category.js';
 import ProductModel from './Product.js';
+import InventoryModel from './Inventory.js'; // ✅ AGREGADO
 import InventoryMovementModel from './InventoryMovement.js';
 import NCFModel from './NCF.js';
 import InvoiceModel from './Invoice.js';
@@ -29,7 +30,7 @@ import BudgetModel from './Budget.js';
 import SubscriptionModel from './Subscription.js';
 import Report606Model from './Report606.js';
 import Report607Model from './Report607.js';
-import Report608Model from './Report608.js'; // ✅ Importación de Report608
+import Report608Model from './Report608.js';
 
 dotenv.config();
 
@@ -129,6 +130,7 @@ const Customer = CustomerModel(sequelize);
 const Supplier = SupplierModel(sequelize);
 const Category = CategoryModel(sequelize);
 const Product = ProductModel(sequelize);
+const Inventory = InventoryModel(sequelize); // ✅ AGREGADO
 const InventoryMovement = InventoryMovementModel(sequelize);
 const NCF = NCFModel(sequelize);
 const Invoice = InvoiceModel(sequelize);
@@ -142,11 +144,9 @@ const Payroll = PayrollModel(sequelize);
 const Asset = AssetModel(sequelize);
 const Budget = BudgetModel(sequelize);
 const Subscription = SubscriptionModel(sequelize);
-
-// Se inicializan los modelos de Reporte 606, 607 y 608
 const Report606 = Report606Model(sequelize);
 const Report607 = Report607Model(sequelize);
-const Report608 = Report608Model(sequelize); // ✅ Report608 inicializado
+const Report608 = Report608Model(sequelize);
 
 // ============================================
 // DEFINIR RELACIONES
@@ -167,6 +167,10 @@ Category.hasMany(Product, { foreignKey: 'categoria_id', as: 'products' });
 // Categoría - Categoría Padre (Autorreferencia)
 Category.belongsTo(Category, { foreignKey: 'categoria_padre_id', as: 'parentCategory' });
 Category.hasMany(Category, { foreignKey: 'categoria_padre_id', as: 'subcategories' });
+
+// Inventario - Producto (N:1)
+Inventory.belongsTo(Product, { foreignKey: 'producto_id', as: 'product' });
+Product.hasOne(Inventory, { foreignKey: 'producto_id', as: 'inventory' }); // ✅ AGREGADO
 
 // Movimiento Inventario - Producto (N:1)
 InventoryMovement.belongsTo(Product, { foreignKey: 'producto_id', as: 'product' });
@@ -247,7 +251,7 @@ Purchase.hasOne(Report606, { foreignKey: 'compra_id', as: 'report606' });
 Report607.belongsTo(Invoice, { foreignKey: 'factura_id', as: 'invoice' });
 Invoice.hasOne(Report607, { foreignKey: 'factura_id', as: 'report607' });
 
-Report608.belongsTo(Invoice, { foreignKey: 'factura_id', as: 'invoice' }); // ✅ Relación para Report608
+Report608.belongsTo(Invoice, { foreignKey: 'factura_id', as: 'invoice' });
 Invoice.hasOne(Report608, { foreignKey: 'factura_id', as: 'report608' });
 
 // ============================================
@@ -263,6 +267,7 @@ export {
   Supplier,
   Category,
   Product,
+  Inventory, // ✅ AGREGADO
   InventoryMovement,
   NCF,
   Invoice,
@@ -278,7 +283,7 @@ export {
   Subscription,
   Report606,
   Report607,
-  Report608, // ✅ Exportación de Report608
+  Report608,
 };
 
 export default sequelize;
